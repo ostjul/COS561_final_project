@@ -1,0 +1,9 @@
+
+# For parsing .pcap files 
+dpkt==1.9.8
+
+# For handling data
+pandas==1.4.4
+
+# For discrete time simulation of networks
+ns.py==0.3.3
