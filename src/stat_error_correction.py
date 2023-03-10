@@ -84,25 +84,3 @@ def correct_predictions(predictions, bins, average_errors):
     # Adjust prediction
     predictions = predictions - corresponding_errors
     return predictions
-
-# Their code literally does not use any DBSCAN algorithm
-# def get_bins(predictions, targets, dbscan_kwargs):
-#     '''
-#     Given the prediction sojourn times and target sojourn times,
-#         1) calculate errors
-#         2) cluster errors into bins using DBSCAN algorithm
-#         3) calculate average error in each bin
-#         4) return the bins and average of each bin
-
-#     Arg(s):
-
-#     '''
-#     assert predictions.shape == targets.shape
-
-#     errors = targets - predictions
-
-#     clustering = cluster.DBSCAN().fit(errors)
-#     labels = clustering.labels_
-#     n_clusters = np.unique(labels)
-
-
