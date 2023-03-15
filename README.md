@@ -13,4 +13,10 @@
 1. Download zip file with `wget https://www.dropbox.com/s/q56sx4hxe93n4g5/DeepQueueNet-dataset.zip?dl=1 -O DeepQueueNet-dataset.zip`
 2. Unzip using `unzip DeepQueueNet-dataset.zip`
 3. Rename folder with `mv 'DeepQueueNet-synthetic data'/ dqn_data`
+    * There should be the following directory structure:
+        data
+          |--dqn_data
+              |--4-port switch
+              |--fattree16
+
 4. Delete zip file with `rm DeepQueueNet-dataset.zip`
