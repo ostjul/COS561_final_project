@@ -1,8 +1,114 @@
-# For parsing .pcap files
+absl-py==1.4.0
+aiofiles==22.1.0
+aiosqlite==0.18.0
+anyio==3.6.2
+argon2-cffi==21.3.0
+argon2-cffi-bindings==21.2.0
+arrow==1.2.3
+asttokens @ file:///opt/conda/conda-bld/asttokens_1646925590279/work
+attrs==22.2.0
+Babel==2.12.1
+backcall @ file:///home/ktietz/src/ci/backcall_1611930011877/work
+beautifulsoup4==4.11.2
+bleach==6.0.0
+certifi @ file:///croot/certifi_1671487769961/work/certifi
+cffi==1.15.1
+charset-normalizer==3.1.0
+chex==0.1.6
+comm @ file:///croot/comm_1671231121260/work
+debugpy @ file:///home/builder/ci_310/debugpy_1640789504635/work
+decorator @ file:///opt/conda/conda-bld/decorator_1643638310831/work
+defusedxml==0.7.1
+dm-tree==0.1.8
 dpkt==1.9.8
-
-# For handling data
-pandas==1.4.4
-
-# For discrete time simulation of networks
+entrypoints @ file:///tmp/build/80754af9/entrypoints_1649908313000/work
+executing @ file:///opt/conda/conda-bld/executing_1646925071911/work
+fastjsonschema==2.16.3
+fqdn==1.5.1
+idna==3.4
+ipykernel @ file:///croot/ipykernel_1671488378391/work
+ipython @ file:///croot/ipython_1676582224036/work
+ipython-genutils==0.2.0
+isoduration==20.11.0
+jax==0.4.6
+jaxlib==0.4.6
+jedi @ file:///tmp/build/80754af9/jedi_1644315229345/work
+Jinja2==3.1.2
+json5==0.9.11
+jsonpointer==2.3
+jsonschema==4.17.3
+jupyter-events==0.6.3
+jupyter-ydoc==0.2.3
+jupyter_client @ file:///croot/jupyter_client_1676329080601/work
+jupyter_core @ file:///croot/jupyter_core_1676538566912/work
+jupyter_server==2.4.0
+jupyter_server_fileid==0.8.0
+jupyter_server_terminals==0.4.4
+jupyter_server_ydoc==0.6.1
+jupyterlab==3.6.1
+jupyterlab-pygments==0.2.2
+jupyterlab_server==2.20.0
+MarkupSafe==2.1.2
+matplotlib-inline @ file:///opt/conda/conda-bld/matplotlib-inline_1662014470464/work
+mistune==2.0.5
+nbclassic==0.5.3
+nbclient==0.7.2
+nbconvert==7.2.10
+nbformat==5.7.3
+nest-asyncio @ file:///croot/nest-asyncio_1672387112409/work
+networkx==3.0
+notebook==6.5.3
+notebook_shim==0.2.2
 ns.py==0.3.3
+numpy==1.24.2
+nvidia-cublas-cu11==11.10.3.66
+nvidia-cuda-nvrtc-cu11==11.7.99
+nvidia-cuda-runtime-cu11==11.7.99
+nvidia-cudnn-cu11==8.5.0.96
+opt-einsum==3.3.0
+packaging @ file:///croot/packaging_1671697413597/work
+pandas==1.4.4
+pandocfilters==1.5.0
+parso @ file:///opt/conda/conda-bld/parso_1641458642106/work
+pexpect @ file:///tmp/build/80754af9/pexpect_1605563209008/work
+pickleshare @ file:///tmp/build/80754af9/pickleshare_1606932040724/work
+platformdirs @ file:///opt/conda/conda-bld/platformdirs_1662711380096/work
+prometheus-client==0.16.0
+prompt-toolkit @ file:///croot/prompt-toolkit_1672387306916/work
+psutil @ file:///opt/conda/conda-bld/psutil_1656431268089/work
+ptyprocess @ file:///tmp/build/80754af9/ptyprocess_1609355006118/work/dist/ptyprocess-0.7.0-py2.py3-none-any.whl
+pure-eval @ file:///opt/conda/conda-bld/pure_eval_1646925070566/work
+pycparser==2.21
+Pygments @ file:///opt/conda/conda-bld/pygments_1644249106324/work
+pyrsistent==0.19.3
+python-dateutil @ file:///tmp/build/80754af9/python-dateutil_1626374649649/work
+python-json-logger==2.0.7
+pytz==2022.7.1
+PyYAML==6.0
+pyzmq==25.0.1
+requests==2.28.2
+rfc3339-validator==0.1.4
+rfc3986-validator==0.1.1
+scipy==1.10.1
+Send2Trash==1.8.0
+simpy==4.0.1
+six @ file:///tmp/build/80754af9/six_1644875935023/work
+sniffio==1.3.0
+soupsieve==2.4
+stack-data @ file:///opt/conda/conda-bld/stack_data_1646927590127/work
+terminado==0.17.1
+tinycss2==1.2.1
+tomli==2.0.1
+toolz==0.12.0
+torch==1.13.1
+tornado @ file:///opt/conda/conda-bld/tornado_1662061693373/work
+traitlets @ file:///croot/traitlets_1671143879854/work
+typing_extensions==4.5.0
+uri-template==1.2.0
+urllib3==1.26.15
+wcwidth @ file:///Users/ktietz/demo/mc3/conda-bld/wcwidth_1629357192024/work
+webcolors==1.12
+webencodings==0.5.1
+websocket-client==1.5.1
+y-py==0.5.9
+ypy-websocket==0.8.2
