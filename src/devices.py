@@ -53,20 +53,39 @@ class PFM:
     def __init__(self, forwarding_table):
         self.tensor = None # TODO: set the forwarding tensor
 
+    def _update_in_port(self, tau: Tau, in_port):
+        pack = tau.packet
+        pack.in_port = in_port
+        return Tau(
+            timestamp=tau.timestamp # Don't modify the timestamp
+            packet=packet
+        )
+
     def forward(self, T_in):
         '''
         T_in is a list of Taus (packet stream)
         '''
         # TODO: calculate out port using forward tensor described in 3.2.2
+
         # T_in  = [tau0,in; tau1,in;...;tau_k-1,in]
         # tau_j,in = the ingress packet stream of the jst port of the device
         # tau = [(p0,t0), (p1,t1), ...(pn,tn)]
         # p = <pid,fid,len,trp>
             # augment to be p = <pid, fid, len, trp, in_port>
+        
+        # augement T_in to have the accurate in_ports 
+        for i in range(len(T_in)):
+            tau_i = tree_stack(T_in[i])
+            T_in[i] = tree_unstack(vmap(self._update_in_port, in_axes=(None, 0)) (tau_i, i))
+        # need to test, but T_in should hopefully now be undated to have the correct in_port values
+
+        # now we need the forwarding function (which the paper says we can get from the forwarding table)    
 
 
-        # Before forwarding, augment the packet stream of each ingress port by adding the ingress port ID as a new feature in the packet vecotrs
-            # for each tau_r in T_in, we know that port ID is r, so we augment each pk to include r
+        # Before forwarding, augment the packet stream of each ingress port by adding 
+        # the ingress port ID as a new feature in the packet vectors
+            # for each tau_r in T_in, we know that ingress port ID is r, so we augment each pk 
+            # to include r
             # for all ingress streams, pad them to the same length with empty packets
         # takes flow id of packet and id of ingress poirt and outputs the egress port ID
         # can produce the forwarding tensor F, a 3D 0-1 tensor 
@@ -79,9 +98,14 @@ class PFM:
                 # forward(fid, in_port) = out_port
             # Using the augemented ingress streams and the forward function(.), produce the 3-dimensional forwarding Tensor F
             # however, in Figure 4, it looks like the forwarding Tensor F is given
-        
+                # in addition there is Pre-PFM augmentation (adding in in_port)
+        # does the flow ID relate at all to the order of the packets in an ingress stream?
+
+        # Should the forwarding table looks like the forwarding tables in the the data?
+            # They don't seem right since the fids (flow IDs) don't seem to be taken into 
+            # consideration
         F = None # F is the forwarding tensor
-        return F * T_in #forwarding tensor * T_in
+        return F * T_in # forwarding tensor * T_in
 
 '''
 Module for traffic management in devices
