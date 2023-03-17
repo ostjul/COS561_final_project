@@ -1,0 +1,39 @@
+name: dqn
+channels:
+  - defaults
+dependencies:
+  - _libgcc_mutex=0.1=main
+  - tzdata=2022g=h04d1e81_0
+  - pip:
+      - readline==8.2=h5eee18b_0
+      - xz==5.2.10=h5eee18b_1
+      - ca-certificates==2023.01.10=h06a4308_0
+      - bzip2==1.0.8=h7b6447c_0
+      - zlib==1.2.13=h5eee18b_0
+      - libgomp==11.2.0=h1234567_1
+      - pip==23.0.1=py310h06a4308_0
+      - certifi==2022.12.7=py310h06a4308_0
+      - libffi==3.4.2=h6a678d5_6
+      - libuuid==1.41.5=h5eee18b_0
+      - _openmp_mutex==5.1=1_gnu 
+      - python==3.10.9=h7a1cb2a_2
+      - wheel==0.38.4=py310h06a4308_0
+      - ncurses==6.4=h6a678d5_0
+      - ld_impl_linux-64==2.38=h1181459_1
+      - setuptools==65.6.3=py310h06a4308_0
+      - sqlite==3.40.1=h5082296_0
+      - tk==8.6.12=h1ccaba5_0
+      - openssl==1.1.1t=h7f8727e_0
+      - libstdcxx-ng==11.2.0=h1234567_1
+      - libgcc-ng==11.2.0=h1234567_1
+      - dpkt==1.9.8
+      - networkx==3.0
+      - ns-py==0.3.3
+      - numpy==1.24.2
+      - pandas==1.4.4
+      - python-dateutil==2.8.2
+      - pytz==2022.7.1
+      - pyyaml==6.0
+      - simpy==4.0.1
+      - six==1.16.0
+prefix: /n/fs/ac-project/anaconda3/envs/dqn

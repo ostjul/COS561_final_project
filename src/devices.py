@@ -58,7 +58,30 @@ class PFM:
         T_in is a list of Taus (packet stream)
         '''
         # TODO: calculate out port using forward tensor described in 3.2.2
-        return T_in
+        # T_in  = [tau0,in; tau1,in;...;tau_k-1,in]
+        # tau_j,in = the ingress packet stream of the jst port of the device
+        # tau = [(p0,t0), (p1,t1), ...(pn,tn)]
+        # p = <pid,fid,len,trp>
+            # augment to be p = <pid, fid, len, trp, in_port>
+
+
+        # Before forwarding, augment the packet stream of each ingress port by adding the ingress port ID as a new feature in the packet vecotrs
+            # for each tau_r in T_in, we know that port ID is r, so we augment each pk to include r
+            # for all ingress streams, pad them to the same length with empty packets
+        # takes flow id of packet and id of ingress poirt and outputs the egress port ID
+        # can produce the forwarding tensor F, a 3D 0-1 tensor 
+        # forward(fid, in_port) -> out_port
+        
+
+        # high level:
+            # given a forwarding table and augments T_in,
+            # model the forwarding tbale as a function that takes the flow ID of the packet and ID of the ingress port and outputs the egress port ID.  
+                # forward(fid, in_port) = out_port
+            # Using the augemented ingress streams and the forward function(.), produce the 3-dimensional forwarding Tensor F
+            # however, in Figure 4, it looks like the forwarding Tensor F is given
+        
+        F = None # F is the forwarding tensor
+        return F * T_in #forwarding tensor * T_in
 
 '''
 Module for traffic management in devices
