@@ -61,9 +61,7 @@ class deepPTM(nn.Module):
         self.dec_layer = nn.Linear(lstm_config["width"][-1], 1)
 
         # Save configs
-        self.lstm_config = lstm_config
         self.lstm_bidirectional = lstm_config["bidirectional"]
-        self.attn_config = attn_config
         self.attn_embbed_dim = attn_config["dim"]
         self.num_attn_heads = attn_config["num_heads"]
         self.time_steps = time_steps
@@ -86,6 +84,18 @@ class deepPTM(nn.Module):
         for l_f, l_b in zip(lstm_fw[1:], lstm_bw[1:]):
             x_f = l_f(x_f)[0]
             x_b = l_b(x_b)[0]
+
+        x = x_f + x_b
+        return x
+    
+    # run type 2 biderictonal LSTM
+    def _run_type_2_multi_layer_bi_directional(self, x, lstm_fw, lstm_bw):
+        x_f = lstm_fw[0](x)[0]
+        x_b = lstm_bw[0](x.flip(-1))[0]
+        for l_f, l_b in zip(lstm_fw[1:], lstm_bw[1:]):
+            x = x_f + x_b
+            x_f = l_f(x)[0]
+            x_b = l_b(x.flip())[0]
 
         x = x_f + x_b
         return x
