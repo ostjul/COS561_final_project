@@ -6,11 +6,11 @@ att=64. #attention output layer dim
 mul_head=3
 mul_head_output_nodes=32
 
-fet_cols = ['pkt len (byte)', 'src', 'dst', 'TI0', 'TI1', 'TI2', 'TI3', 'load_dst0_0', 'load_dst1_0', 'load_dst2_0', 'load_dst3_0', 'inter_arr_sys']
 
 batch_size = 4
 time_steps = 42
 
+fet_cols = ['pkt len (byte)', 'src', 'dst', 'TI0', 'TI1', 'TI2', 'TI3', 'load_dst0_0', 'load_dst1_0', 'load_dst2_0', 'load_dst3_0', 'inter_arr_sys']
 in_feat = len(fet_cols)
 
 class deepPTM(nn.Module):
@@ -21,6 +21,11 @@ class deepPTM(nn.Module):
         """
         """
         super().__init__(*args, **kwargs)
+        # Save configs
+        self.lstm_bidirectional = lstm_config["bidirectional"]
+        self.attn_embbed_dim = attn_config["dim"]
+        self.num_attn_heads = attn_config["num_heads"]
+        self.time_steps = time_steps
 
         # TODO: Add initialization
 
@@ -34,20 +39,14 @@ class deepPTM(nn.Module):
                 in_feat=in_feat, hidden_size=lstm_config["width"], dropout=lstm_config["dropout"])
         
         # KQV encoder
-        self.val_enc = [torch.nn.Linear(lstm_config["width"][-1], attn_config["dim"]) 
-                        for i in range(attn_config["num_heads"])]
-        self.key_enc = [torch.nn.Linear(lstm_config["width"][-1], attn_config["dim"]) 
-                        for i in range(attn_config["num_heads"])]
-        self.query_enc = [torch.nn.Linear(lstm_config["width"][-1], attn_config["dim"]) 
-                          for i in range(attn_config["num_heads"])]
+        self.val_enc = self._get_encoder_layers(lstm_config["width"][-1], attn_config["dim"], attn_config["num_heads"])
+        self.key_enc = self._get_encoder_layers(lstm_config["width"][-1], attn_config["dim"], attn_config["num_heads"])
+        self.query_enc = self._get_encoder_layers(lstm_config["width"][-1], attn_config["dim"], attn_config["num_heads"])
 
         # Multihead attention
-        self.attn = nn.MultiheadAttention(embed_dim=attn_config["dim"] * attn_config["num_heads"],
-                                          num_heads=attn_config["num_heads"],
-                                          dropout=attn_config["dropout"],
-                                          batch_first=True)
-        self.attn_out = torch.nn.Linear(attn_config["dim"] * attn_config["num_heads"],
-                                        attn_config["out_dim"])
+        self.attn = nn.MultiheadAttention(embed_dim=attn_config["dim"] * attn_config["num_heads"], num_heads=attn_config["num_heads"],
+                                          dropout=attn_config["dropout"], batch_first=True)
+        self.attn_out = torch.nn.Linear(attn_config["dim"] * attn_config["num_heads"], attn_config["out_dim"])
         
         # LSTM out
         self.out_lstm_fw = self._get_multi_layer_lstm(
@@ -60,12 +59,6 @@ class deepPTM(nn.Module):
         
         self.dec_layer = nn.Linear(lstm_config["width"][-1], 1)
 
-        # Save configs
-        self.lstm_bidirectional = lstm_config["bidirectional"]
-        self.attn_embbed_dim = attn_config["dim"]
-        self.num_attn_heads = attn_config["num_heads"]
-        self.time_steps = time_steps
-
     def _get_multi_layer_lstm(self, in_feat, hidden_size=[200, 100], dropout=0.):
         lstm = nn.ModuleList(
             [nn.LSTM(input_size=in_feat, hidden_size=hidden_size[0],
@@ -75,7 +68,9 @@ class deepPTM(nn.Module):
                         for i, width in enumerate(hidden_size[1:])]
                         )
         return lstm
-
+    
+    def _get_encoder_layers(self, in_dim, out_dim, num_heads):
+        return [torch.nn.Linear(in_dim, out_dim) for i in range(num_heads)]
 
     # run type 1 biderictonal LSTM
     def _run_multi_layer_bi_directional(self, x, lstm_fw, lstm_bw):
