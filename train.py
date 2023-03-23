@@ -1,8 +1,6 @@
 # adapted from https://github.com/HUAWEI-Theory-Lab/deepqueuenet/blob/e84fc9bf09260e2a1bb586aa5c2024e346858569/train1000.py#L74
 import os
 import sys
-import time
-
 
 import numpy as np
 import torch
@@ -11,7 +9,7 @@ import torch.multiprocessing as mp
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 
-from matplotlib import pyplot as plt
+
 import copy
 import glob
 import pickle
@@ -85,7 +83,6 @@ iter_num = 0
 
 cached_loss = "Init"
 
-prev_time = time.time()
 
 def save_model(model, out_file):
     torch.save(model.state_dict(), model_dir + "/" + out_file)
