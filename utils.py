@@ -1,21 +1,46 @@
-import tree 
-import jax.numpy as jnp
+import pandas as pd
+from functools import reduce
 
-def tree_stack(list_):
-    assert len(list_) > 0
-    leaves_list = []
-    for struct in list_:
-        leaves = tree.flatten(struct)
-        leaves_list.append(leaves)
+# This merges multiple flow dataframes
+def merge_flow_dfs(flow_dfs):
+    return pd.concat(flow_dfs).sort_values(by='timestamp')
 
-    grouped_leaves = zip(*leaves_list)
-    result_leaves = [jnp.stack(l) for l in grouped_leaves]
-    return tree.unflatten_as(list_[0], result_leaves)
+# This generates a pandas dataframe from a given flow
+def flow_to_df(flow_id, flow):
+    perhop_times = flow.pkt_sink.perhop_times[flow_id]
+    arrival_times = flow.pkt_sink.arrivals[flow_id] 
+    pkt_sizes = flow.pkt_sink.packet_sizes[flow_id]
+    data_dict = {
+        'timestamp': [],
+        'pkt_len': [],
+        'cur_hub': [],
+        'cur_port': [],
+        'path': [],
+        'etime': []
+    }
+        
+    # Add the information for the rows of our df.
+    for packet_hops, arrival_time in zip(perhop_times, arrival_times):
+        a = sorted([(ts, dp) for dp, ts in packet_hops.items()])
+        current_path = ''
+        for i, (ts, dp) in enumerate(a):
+            current_path += dp
+            cur_hub, cur_port = tuple(dp.split('_'))
+            etime = arrival_time if i == len(a) - 1 else a[i + 1][0]
+            
+            data_dict['pkt_len'].append(pkt_sizes[i])
+            data_dict['timestamp'].append(ts)
+            data_dict['cur_hub'].append(cur_hub)
+            data_dict['cur_port'].append(cur_port)
+            data_dict['path'].append(current_path)
+            data_dict['etime'].append(etime)
 
-def tree_index(struct, idx):
-  return tree.map_structure(lambda x: x[idx], struct)
+            current_path += '-'
 
-# This is the inverse operation of tree_stack.
-def tree_unstack(struct):
-    n, = set([len(x) for x in tree.flatten(struct)])
-    return [tree_index(struct, i) for i in range(n)]
+    # TODO: Get the priority from the flow somehow.
+    data_dict['priority'] = [0] * len(data_dict['pkt_len'])
+    
+    # Make the data dict
+    df = pd.DataFrame(data_dict)
+
+    return df
