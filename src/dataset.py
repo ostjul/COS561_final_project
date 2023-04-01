@@ -5,42 +5,6 @@ from torch.utils.data import Dataset
 import os, sys
 
 
-def preprocess_csvs(csv_paths: list,
-                    verbose: bool):
-
-    non_existent_paths = []
-    for csv_path in csv_paths:
-        if not os.path.exists(csv_path):
-            non_existent_paths.append(csv_path)
-
-    if len(non_existent_paths) > 0:
-        raise ValueError("{} paths in csv_paths do not exist: {}".format(len(non_existent_paths), non_existent_paths))
-
-    n_csvs = len(csv_paths)
-    for csv_idx, csv_path in enumerate(csv_paths):
-        if verbose:
-            print("Processing {}/{} csv: {}".format(csv_idx + 1, n_csvs, csv_path))
-
-        df = df = pd.read_csv(csv_path)
-        df = df.sort_values(['cur_hub', 'cur_port', 'etime'])
-        df['time_diff'] = df['etime'] - df['timestamp (sec)']
-        x_cols = [
-            'index', #PID?
-            'pkt len (byte)', # packet length
-            'priority',
-            'src_pc',
-            'cur_port' # in port
-        ]
-        y_col = ['time_diff']
-
-        unique_ports = df['cur_port'].unique()
-        unique_hubs = df['cur_hub'].unique()
-        for hub in unique_hubs:
-            for port in unique_ports:
-                cur_hub_port_df = df.loc[(df['cur_port'] == port) & (df['cur_hub'] == hub)]
-                len_data = len(cur_hub_port_df)
-
-
 
 class TracesDataset(Dataset):
     def __init__(self,
