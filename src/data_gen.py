@@ -27,6 +27,8 @@ parser.add_argument('--port-rate', type=int, default=10000,
                     help='Port Rate in bytes/second (default: 10000)')
 parser.add_argument('--buffer-size', type=int, default=1000,
                     help='Buffer Size in bytes (default: 1000)')
+parser.add_argument('--scheduler', type=str, default='FIFO', choices=['DRR', 'WFQ', 'SP', 'FIFO'],
+                    help='which scheduler to use. (options: DRR, WFQ, SP, FIFO  default: FIFO)')
 parser.add_argument('--num-ports', type=int, default=4,
                     help='Max number of ports in the switch (default: 4)')
 parser.add_argument('--num-flows', type=int, default=5,
@@ -83,6 +85,7 @@ if __name__ == "__main__":
     # will take to get from host to host.
     ft = generate_fib(ft, all_flows) # TODO: Look at this closer.
 
+
     # Generate priorities/weights for the classes. TODO: Parameterize this somehow.
     n_classes_per_port = 4
     weights = {c: 1 for c in range(n_classes_per_port)}
@@ -98,14 +101,22 @@ if __name__ == "__main__":
                             fib=node['flow_to_port'])
         
         # Here we make a packet switch to simulate the queueing.
-        node['device'] = FairPacketSwitch(env,
-                                        args.num_ports,
-                                        args.port_rate,
-                                        args.buffer_size,
-                                        weights,
-                                        'DRR', # This can be DRR, WFQ, or SP; the DeepQueueNet paper does experiments with all 3.
-                                        flow_classes,
-                                        element_id=f"{node_id}")
+        if args.scheduler == 'FIFO':
+            node['device'] = SimplePacketSwitch(env,
+                                                args.num_ports,
+                                                args.port_rate,
+                                                args.buffer_size,
+                                                element_id=f"{node_id}")
+        else:
+            # The fair packet switch implements the DRR, WFQ, and SP queueing schedulers
+            node['device'] = FairPacketSwitch(env,
+                                              args.num_ports,
+                                              args.port_rate,
+                                              args.buffer_size,
+                                              weights,
+                                              args.scheduler,
+                                              flow_classes,
+                                              element_id=f"{node_id}")
         node['device'].demux.fib = node['flow_to_port']
 
     # Map the forwarding table to specific ports where things will be forwarded to/from
