@@ -1,5 +1,6 @@
 # Manually added
 data/
+topologies/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
