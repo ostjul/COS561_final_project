@@ -3,7 +3,7 @@ from random import expovariate, sample
 
 import os
 import argparse
-import logging
+import cloudpickle
 
 import numpy as np
 import simpy
@@ -37,8 +37,8 @@ parser.add_argument('--duration', type=float, default=1000.,
                     help='Number of seconds to run the simulation (default: 1000)')
 parser.add_argument('--output-dir', type=str, default='data',
                     help='Directory to write the csv results to (default: sim_data)')
-parser.add_argument('--output-name', type=str, default='rsim.csv',
-                    help='Name of the output csv file (default: rsim.csv)')
+parser.add_argument('--output-name', type=str, default='rsim',
+                    help='Name of the output csv file (default: rsim)')
 
 args = parser.parse_args()
 
@@ -93,9 +93,13 @@ if __name__ == "__main__":
     def flow_to_classes(f_id, n_id=0, fib=None):
         return (f_id + n_id + fib[f_id]) % n_classes_per_port
     
+    # This will contain the dictionary of the forwarding tables for each switch.
+    forwarding_tables = {}
+
     # Setup the switches in the network
     for node_id in ft.nodes():
         node = ft.nodes[node_id]
+        forwarding_tables[node_id] = node['flow_to_port']
         flow_classes = partial(flow_to_classes,
                             n_id=node_id,
                             fib=node['flow_to_port'])
@@ -140,8 +144,11 @@ if __name__ == "__main__":
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
     # Write to csv file.
-    df.to_csv(os.path.join(args.output_dir, args.output_name), index=False)
+    df.to_csv(os.path.join(args.output_dir, f'{args.output_name}.csv'), index=False)
 
+    # Also write the forwarding table to the output 
+    with open(os.path.join(args.output_dir, f'{args.output_name}.ft'), 'wb') as f:
+        cloudpickle.dump(forwarding_tables, f)
 
 
 
