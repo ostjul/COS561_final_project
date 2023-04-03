@@ -10,13 +10,16 @@ def flow_to_df(flow_id, flow):
     perhop_times = flow.pkt_sink.perhop_times[flow_id]
     arrival_times = flow.pkt_sink.arrivals[flow_id] 
     pkt_sizes = flow.pkt_sink.packet_sizes[flow_id]
+
     data_dict = {
         'timestamp': [],
         'pkt_len': [],
         'cur_hub': [],
         'cur_port': [],
         'path': [],
-        'etime': []
+        'priority': [],
+        'flow_id': [],
+        'etime': [],
     }
         
     # Add the information for the rows of our df.
@@ -27,18 +30,18 @@ def flow_to_df(flow_id, flow):
             current_path += dp
             cur_hub, cur_port = tuple(dp.split('_'))
             etime = arrival_time if i == len(a) - 1 else a[i + 1][0]
-            
-            data_dict['pkt_len'].append(pkt_sizes[i])
             data_dict['timestamp'].append(ts)
+            data_dict['pkt_len'].append(pkt_sizes[i])
             data_dict['cur_hub'].append(cur_hub)
             data_dict['cur_port'].append(cur_port)
             data_dict['path'].append(current_path)
+            data_dict['priority'].append(0)
+            data_dict['flow_id'].append(flow_id)
             data_dict['etime'].append(etime)
 
             current_path += '-'
 
-    # TODO: Get the priority from the flow somehow.
-    data_dict['priority'] = [0] * len(data_dict['pkt_len'])
+    
     
     # Make the data dict
     df = pd.DataFrame(data_dict)
