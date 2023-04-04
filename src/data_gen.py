@@ -138,7 +138,7 @@ if __name__ == "__main__":
     env.run(until=args.duration)
 
     # Now, we use our utility functions to aggregate the results into a per flow dataframe, and merge based on time
-    dfs = [flow_to_df(*flow) for flow in all_flows.items()]
+    dfs = [flow_to_df(*flow, scheduler=args.scheduler) for flow in all_flows.items()]
     df = merge_flow_dfs(dfs)
     # Create output directory if it doesn't exist
     if not os.path.exists(args.output_dir):
