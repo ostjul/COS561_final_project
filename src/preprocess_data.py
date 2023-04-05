@@ -7,6 +7,8 @@ from tqdm import tqdm
 
 from fs_utils import remove_and_create_dir
 
+AVAILABLE_SCHEDULERS = ['FIFO', 'DRR', 'SP', 'WFQ']
+
 def preprocess_csvs(csv_paths: list,
                     verbose: bool,
                     csv_save_dir: str=None):
@@ -34,7 +36,7 @@ def preprocess_csvs(csv_paths: list,
         n_devices = len(unique_devices)
         
         # Data structure for storing rows with new load column
-        new_dfs = []
+        processed_dfs = []
         for device_idx, device in enumerate(unique_devices):
             if verbose:
                 print("Processing device {} ({}/{})".format(device, device_idx + 1, n_devices))
@@ -62,23 +64,32 @@ def preprocess_csvs(csv_paths: list,
                     loads.append(load)
                 # Assign load column and append to list of dataframe 
                 cur_device_port_df['load'] = loads
-                new_dfs.append(cur_device_port_df)
+                processed_dfs.append(cur_device_port_df)
             if verbose:
                 print("")
         # Concatenate data frames for each device/port combination
-        new_df = pd.concat(new_dfs)
+        processed_df = pd.concat(processed_dfs)
         
         # Calculate average load for each port
         for port in unique_ports:
-            avg_load = np.mean(new_df[new_df['cur_port'] == port]['load'].to_numpy())
-            new_df['mean_load_port_{}'.format(port)] = avg_load
+            avg_load = np.mean(processed_df[processed_df['cur_port'] == port]['load'].to_numpy())
+            processed_df['mean_load_port_{}'.format(port)] = avg_load
             if verbose:
                 print("average load for port {}: {}".format(port, avg_load))
+        
+        # Calculate the delay time (predicted variable)
+        processed_df['delay'] = processed_df['etime'] - processed_df['timestamp (sec)']
+        
+        # One hot encode the scheduler
+        # scheduler = processed_df['scheduler']
+        one_hot_scheduler = pd.get_dummies(processed_df['scheduler'])
+        processed_df = pd.concat([processed_df, one_hot_scheduler], axis=1)
+        # TODO: Complete this function with get_dummies() https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.get_dummies.html
         
         # Save new CSV
         csv_save_name = os.path.splitext(os.path.basename(csv_path))[0] + '_processed.csv'
         csv_save_path = os.path.join(csv_save_dir, csv_save_name)
         
-        new_df.to_csv(csv_save_path)
+        processed_df.to_csv(csv_save_path)
         print("Saved processed csv to {}\n".format(csv_save_path))
              
