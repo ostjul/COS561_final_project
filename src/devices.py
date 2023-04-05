@@ -6,6 +6,7 @@ from chex import dataclass
 
 from utils import tree_stack, tree_unstack, tree_index
 
+
 import torch
 import torch.nn as nn
 
@@ -67,6 +68,7 @@ class PFM:
 '''
 Module for traffic management in devices
 '''
+
 class deepPTM(nn.Module):
     def __init__(self, in_feat=12,
                  lstm_config= {"width":[200,100], "keep_prob": 1, 'bidirectional': True, 'dropout': 0.},
@@ -194,13 +196,16 @@ fet_cols = ['pkt len (byte)', 'src', 'dst', 'TI0', 'TI1', 'TI2', 'TI3', 'load_ds
 in_feat = len(fet_cols)
     
 
+
 '''
 Device class
 '''
 class Device:
+
     def __init__(self, forwarding_table, num_in_feat, lstm_config, attn_config, time_steps):
         self.pfm = PFM(forwarding_table)
         self.ptm = deepPTM(num_in_feat, lstm_config, attn_config, time_steps)
+
 
     def forward(self, T_in):
         '''
