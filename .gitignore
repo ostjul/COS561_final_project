@@ -1,6 +1,12 @@
 # Manually added
 data/
 
+!data/rsim.csv
+!data/rsim.ft
+
+topologies/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

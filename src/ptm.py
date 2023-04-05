@@ -1,76 +1,20 @@
-# JAX STUFF
-from jax import Array, grad, jit, vmap, tree_util
-import jax.numpy as jnp
-
-from chex import dataclass
-
-from utils import tree_stack, tree_unstack, tree_index
-
-
 import torch
 import torch.nn as nn
 
-@dataclass
-class Packet:
-    pid: int
-    fid: int
-    length: int
-    trp: int
-    in_port: int # Extra feature added in pre PFM augmentation
 
-@dataclass
-class Tau:
-    timestamp: float # timestamp are floats in seconds (same as PCAP)
-    packet: Packet
-
-@dataclass
-class Link:
-    length: float
-    propagation_speed: float
-    bandwidth: float
-
-    def _forward_tau(self, tau: Tau):
-        return Tau(
-            timestamp=tau.timestamp + tau.packet.length / self.bandwidth + self.length / self.propagation_speed,
-            packet=tau.packet # Don't modify the packet, since this is only a link.
-        )
+att=64. #attention output layer dim
+mul_head=3
+mul_head_output_nodes=32
 
 
-    def forward(self, T_in):
-        '''
-        Given an incoming packet stream T_in, return the outgoing packet stream T_out
+batch_size = 4
+time_steps = 42
 
-        Arg(s):
-            T_in : list[CustomNode(Tau)]
-                list of Taus
-
-        Returns:
-            T_out : list[CustomNode(Tau)]
-                list of Taus with timestamps updated with link delay
-        '''
-        T_in = tree_stack(T_in)
-        return tree_unstack(vmap(self._forward_tau, in_axes=(0, None)) (T_in))
-
-'''
-Module for packet forwarding in devices
-'''
-class PFM:
-    def __init__(self, forwarding_table):
-        self.tensor = None # TODO: set the forwarding tensor
-
-    def forward(self, T_in):
-        '''
-        T_in is a list of Taus (packet stream)
-        '''
-        # TODO: calculate out port using forward tensor described in 3.2.2
-        return T_in
-
-'''
-Module for traffic management in devices
-'''
+fet_cols = ['pkt len (byte)', 'src', 'dst', 'TI0', 'TI1', 'TI2', 'TI3', 'load_dst0_0', 'load_dst1_0', 'load_dst2_0', 'load_dst3_0', 'inter_arr_sys']
+in_feat = len(fet_cols)
 
 class deepPTM(nn.Module):
-    def __init__(self, in_feat=12,
+    def __init__(self, in_feat=in_feat,
                  lstm_config= {"width":[200,100], "keep_prob": 1, 'bidirectional': True, 'dropout': 0.},
                  attn_config={"dim": 64, "num_heads": 3, "out_dim": 32, 'dropout': 0.},
                  time_steps=42, *args, **kwargs) -> None:
@@ -191,24 +135,11 @@ class deepPTM(nn.Module):
 
         return t_pred
     
-# TODO: get from outside
-fet_cols = ['pkt len (byte)', 'src', 'dst', 'TI0', 'TI1', 'TI2', 'TI3', 'load_dst0_0', 'load_dst1_0', 'load_dst2_0', 'load_dst3_0', 'inter_arr_sys']
-in_feat = len(fet_cols)
-    
 
 
-'''
-Device class
-'''
-class Device:
 
-    def __init__(self, forwarding_table, num_in_feat, lstm_config, attn_config, time_steps):
-        self.pfm = PFM(forwarding_table)
-        self.ptm = deepPTM(num_in_feat, lstm_config, attn_config, time_steps)
+placeholder = torch.randn(batch_size, time_steps, in_feat)
 
+model = deepPTM()
 
-    def forward(self, T_in):
-        '''
-        TODO: modify the forward function
-        '''
-        return self.pfm.forward(T_in) + self.ptm.forward(T_in) # TODO: add delay from PTM
+t_out = model(placeholder)
