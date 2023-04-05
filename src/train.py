@@ -9,44 +9,24 @@ import torch.multiprocessing as mp
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 
-
 import copy
-import glob
-import pickle
 
-
-from model import DeviceModel
-from Dataset import H5Dataset
+from ptm import deepPTM 
+from dataset import TracesDataset 
 
 pytorch_seed = 0
 torch.manual_seed(pytorch_seed)
 
-input_dim = 12 
-embed_dim = 200
-hidden_dim = 100
-output_dim = 1
+
 
 batch_size = 64 * 2 * 2
-seq_len = 42 
-
-# batch_num_per_epoch = 2000
-
-use_gpu = True
-max_epoch = 1000
-
 
 lr = 1e-3
-weight_decay = 1e-3  #  for SGD
-momentum = 0.9 # for SGD
 
-l2_reg_lambda = 1e-1
-
-input_gap = 1
 
 #### training config ####################
 
 identifier = "default"
-
 
 save_base_dir = f"saved/{identifier}"
 
@@ -54,26 +34,16 @@ model_dir = "{}/saved_model".format(save_base_dir)
 saved_model_name = "best_model.pt"
 
 #########################################
-base_dir = "./DeepQueueNet-synthetic-data/data"
+base_dir = "./DeepQueueNet-synthetic-data/data" # this path may need to be changed/unsure of how we want to segment data
+# if we are saving the data separately:  
+train_data_dir = base_dir+"_train"
+valid_data_dir = base_dir+"_valid"
 
 
 writer = SummaryWriter()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-
-
-
-        
-    # validation_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
-
-    # optimizer = torch.optim.Adam(
-    #                                 model.parameters(),
-    #                                 lr = lr
-    #                             )
-
-    # loss_func = torch.nn.MSELoss()
-    # eval_loss_func = copy.deepcopy(loss_func)
 # create update lr function
 
 train_epoch_losses = []
@@ -90,8 +60,8 @@ def save_model(model, out_file):
 
 def train_epochs(model, train_dl, valid_dl, epochs=10, start_label=0):
     model = model.to(device)
-    train_ds = H5Dataset(base_dir, mode="train")
-    valid_ds = H5Dataset(base_dir, mode="sampled_valid")
+    train_ds = TracesDataset(train_data_dir)
+    valid_ds = TracesDataset(valid_data_dir)
     train_dl = DataLoader(train_ds, batch_size = batch_size,
                             shuffle = True,
                                 num_workers = 0, 
@@ -150,7 +120,7 @@ def valid(model, eval_loss_func, validation_loader, eval_epoch_losses):
 
 if __name__ == "__main__":
     mp.set_start_method('spawn') 
-    model = DeviceModel(seq_len, input_dim, embed_dim, hidden_dim, output_dim)
+    model = deepPTM()
     train_epochs(model, epochs=10, start_label=0)
 
                     
