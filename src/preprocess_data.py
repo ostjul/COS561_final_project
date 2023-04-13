@@ -24,7 +24,6 @@ def preprocess_csvs(csv_paths: list,
 
         df = df = pd.read_csv(csv_path)
         df = df.sort_values(['cur_hub', 'cur_port', 'timestamp'])
-        df['time_diff'] = df['etime'] - df['timestamp']
 
         unique_ports = df['cur_port'].unique()
         n_ports = len(unique_ports)
@@ -87,7 +86,6 @@ def preprocess_csvs(csv_paths: list,
         for scheduler in AVAILABLE_SCHEDULERS:
             if scheduler not in processed_df.columns:
                 processed_df[scheduler] = zeros
-        # TODO: Complete this function with get_dummies() https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.get_dummies.html
         
         # Save new CSV
         csv_save_name = os.path.splitext(os.path.basename(csv_path))[0] + '_processed.csv'
