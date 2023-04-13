@@ -4,7 +4,7 @@ import numpy as np
 from torch.utils.data import Dataset
 import os, sys
 
-# x_labels should be ['pkt_len', 'cur_port', 'priority', 'flow_id', 'FIFO', 'DRR', 'SP', 'WFQ']
+# x_labels should be ['pkt_len', 'cur_port', 'priority', 'flow_id', 'FIFO', 'DRR', 'SP', 'WFQ', 'load', 'mean_load_port_0', 'mean_load_port_1', 'mean_load_port_2', 'mean_load_port_3']
 # y_label should be 'delay'
 
 class TracesDataset(Dataset):
