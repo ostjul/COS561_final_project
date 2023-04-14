@@ -2,22 +2,22 @@ import torch
 import torch.nn as nn
 
 
-att=64. #attention output layer dim
-mul_head=3
-mul_head_output_nodes=32
+# att=64. #attention output layer dim
+# mul_head=3
+# mul_head_output_nodes=32
 
 
-batch_size = 4
-time_steps = 42
+# batch_size = 4
+# time_steps = 42
 
-fet_cols = ['pkt len (byte)', 'src', 'dst', 'TI0', 'TI1', 'TI2', 'TI3', 'load_dst0_0', 'load_dst1_0', 'load_dst2_0', 'load_dst3_0', 'inter_arr_sys']
-in_feat = len(fet_cols)
+# fet_cols = ['pkt len (byte)', 'src', 'dst', 'TI0', 'TI1', 'TI2', 'TI3', 'load_dst0_0', 'load_dst1_0', 'load_dst2_0', 'load_dst3_0', 'inter_arr_sys']
+# in_feat = len(fet_cols)
 
 class deepPTM(nn.Module):
-    def __init__(self, in_feat=in_feat,
+    def __init__(self, in_feat: int,
                  lstm_config= {"width":[200,100], "keep_prob": 1, 'bidirectional': True, 'dropout': 0.},
                  attn_config={"dim": 64, "num_heads": 3, "out_dim": 32, 'dropout': 0.},
-                 time_steps=42, *args, **kwargs) -> None:
+                 time_steps:int=42, *args, **kwargs) -> None:
         """
         """
         super().__init__(*args, **kwargs)
@@ -70,7 +70,7 @@ class deepPTM(nn.Module):
         return lstm
     
     def _get_encoder_layers(self, in_dim, out_dim, num_heads):
-        return [torch.nn.Linear(in_dim, out_dim) for i in range(num_heads)]
+        return nn.ModuleList([torch.nn.Linear(in_dim, out_dim) for i in range(num_heads)])
 
     # run type 1 biderictonal LSTM
     def _run_multi_layer_bi_directional(self, x, lstm_fw, lstm_bw):
@@ -107,9 +107,9 @@ class deepPTM(nn.Module):
             for l in self.in_lstm_fw:
                 x = l(x)[0]
 
-        v = torch.zeros(b, self.time_steps, self.num_attn_heads, self.attn_embbed_dim)
-        k = torch.zeros(b, self.time_steps,  self.num_attn_heads, self.attn_embbed_dim)
-        q = torch.zeros(b, self.time_steps, self.num_attn_heads, self.attn_embbed_dim)
+        v = torch.zeros([b, self.time_steps, self.num_attn_heads, self.attn_embbed_dim], device=x.device)
+        k = torch.zeros([b, self.time_steps,  self.num_attn_heads, self.attn_embbed_dim], device=x.device)
+        q = torch.zeros([b, self.time_steps, self.num_attn_heads, self.attn_embbed_dim], device=x.device)
 
         for i, (val_enc, key_enc, query_enc) in enumerate(zip(self.val_enc, self.key_enc, self.query_enc)):
             v[:,:, i] = val_enc(x)
@@ -131,15 +131,6 @@ class deepPTM(nn.Module):
 
         lstm_out = x
         
-        t_pred = self.dec_layer(lstm_out)
+        t_pred = self.dec_layer(lstm_out).squeeze()
 
         return t_pred
-    
-
-
-
-placeholder = torch.randn(batch_size, time_steps, in_feat)
-
-model = deepPTM()
-
-t_out = model(placeholder)
