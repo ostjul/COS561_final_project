@@ -6,7 +6,7 @@ def merge_flow_dfs(flow_dfs):
     return pd.concat(flow_dfs).sort_values(by='timestamp')
 
 # This generates a pandas dataframe from a given flow
-def flow_to_df(flow_id, flow, scheduler):
+def flow_to_df(flow_id, flow, weights, scheduler):
     perhop_times = flow.pkt_sink.perhop_times[flow_id]
     arrival_times = flow.pkt_sink.arrivals[flow_id] 
     pkt_sizes = flow.pkt_sink.packet_sizes[flow_id]
@@ -36,7 +36,7 @@ def flow_to_df(flow_id, flow, scheduler):
             data_dict['cur_hub'].append(cur_hub)
             data_dict['cur_port'].append(cur_port)
             data_dict['path'].append(current_path)
-            data_dict['priority'].append(0)
+            data_dict['priority'].append(weights[flow_id])
             data_dict['flow_id'].append(flow_id)
             data_dict['scheduler'].append(scheduler)
             data_dict['etime'].append(etime)
