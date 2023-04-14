@@ -11,8 +11,8 @@ class TracesDataset(Dataset):
     def __init__(self,
                  csv_paths: list,
                  n_timesteps: int,
-                 y_label: str,
-                 x_labels: list):
+                 y_label: str= 'delay',
+                 x_labels: list= ['pkt_len', 'cur_port', 'priority', 'flow_id', 'FIFO', 'DRR', 'SP', 'WFQ', 'load', 'mean_load_port_0', 'mean_load_port_1', 'mean_load_port_2', 'mean_load_port_3']):
 
         self.n_timesteps = n_timesteps
         self.indices = [] # Tuples of (csv_idx, device_idx, row_idx)
@@ -21,8 +21,6 @@ class TracesDataset(Dataset):
         self.xs = []
         self.ys = []
         
-        
-
         # Iterate through all CSVs
         for csv_idx, csv_path in enumerate(csv_paths):
             df = pd.read_csv(csv_path)
@@ -43,8 +41,8 @@ class TracesDataset(Dataset):
                 device_data = device_data.sort_values(['etime'])
 
                 # Separate x and y values for this device
-                xs_device = device_data[x_labels].to_numpy()
-                ys_device = device_data[y_label].to_numpy()
+                xs_device = device_data[x_labels].to_numpy(dtype=np.float32)
+                ys_device = device_data[y_label].to_numpy(dtype=np.float32)
 
                 # Append to list of data for each csv
                 xs_csv.append(xs_device)
@@ -60,6 +58,8 @@ class TracesDataset(Dataset):
             # Append data for this csv to master lists
             self.xs.append(xs_csv)
             self.ys.append(ys_csv)
+
+        self.num_feat = self.xs[0][0].shape[-1]
 
     def __getitem__(self, index):
         # Obtain the index for CSV, device, and row start
