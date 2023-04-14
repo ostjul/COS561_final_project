@@ -24,7 +24,7 @@ def flow_to_df(flow_id, flow, weights, scheduler):
     }
         
     # Add the information for the rows of our df.
-    for packet_hops, arrival_time in zip(perhop_times, arrival_times):
+    for packet_hops, arrival_time, packet_size in zip(perhop_times, arrival_times, pkt_sizes):
         a = sorted([(ts, dp) for dp, ts in packet_hops.items()])
         current_path = ''
         for i, (ts, dp) in enumerate(a):
@@ -32,7 +32,7 @@ def flow_to_df(flow_id, flow, weights, scheduler):
             cur_hub, cur_port = tuple(dp.split('_'))
             etime = arrival_time if i == len(a) - 1 else a[i + 1][0]
             data_dict['timestamp'].append(ts)
-            data_dict['pkt_len'].append(pkt_sizes[i])
+            data_dict['pkt_len'].append(packet_size)
             data_dict['cur_hub'].append(cur_hub)
             data_dict['cur_port'].append(cur_port)
             data_dict['path'].append(current_path)

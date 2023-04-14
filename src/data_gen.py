@@ -4,6 +4,7 @@ from random import expovariate, sample
 import os
 import argparse
 import cloudpickle
+import logging
 
 import numpy as np
 import simpy
@@ -25,8 +26,8 @@ from data_gen_utils import flow_to_df, merge_flow_dfs
 
 parser = argparse.ArgumentParser(description='Data Generation Script for DeepQueueNet using ns.py')
 
-parser.add_argument('--port-rate', type=int, default=1024 * 1024 * 10, 
-                    help='Port Rate in bps (default: 10 Mbs)')
+parser.add_argument('--port-rate', type=int, default=1024 * 100, 
+                    help='Port Rate in bits per second (default: 100 Kbps)')
 parser.add_argument('--buffer-size', type=int, default=1024 * 1024, # TODO: What is a realistic number for this?
                     help='Buffer Size in bytes (default: 1 MB)')
 parser.add_argument('--mean-pkt-size', type=int, default=1000,
@@ -40,7 +41,7 @@ parser.add_argument('--num-ports', type=int, default=4,
 parser.add_argument('--num-flows', type=int, default=20,
                     help='Number of flows to use in the simulation (default: 20)')
 parser.add_argument('--duration', type=float, default=1000.,
-                    help='Number of seconds to run the simulation (default: 1000)')
+                    help='Number of seconds to run the simulation (default: 10)')
 parser.add_argument('--output-dir', type=str, default='data',
                     help='Directory to write the csv results to (default: sim_data)')
 parser.add_argument('--output-name', type=str, default='rsim',
@@ -55,7 +56,8 @@ def interarrival(y):
     
 def packet_size():
     # TODO: Add options for a wider range of packet size distributions
-    return 1 + int(np.random.poisson(args.mean_pkt_size))
+    return int(np.random.poisson(args.mean_pkt_size))
+    # return int(args.mean_pkt_size)
 
 def generate_synthetic_traffic_dataset(G, all_flows):
 
@@ -64,8 +66,9 @@ def generate_synthetic_traffic_dataset(G, all_flows):
 
     # Here we setup various ways of generating traffic.
     if args.traffic_gen == 'Poisson':
-        packets_per_second = args.port_rate / args.mean_pkt_size * 8 # packets per second
-        lambd = 0.5 * packets_per_second # TODO: Vary the link load between 0.1 and 0.9
+        packets_per_second = args.port_rate / (args.mean_pkt_size * 8) # packets per second
+        utilization = 0.2 # TODO: Vary the link load between 0.1 and 0.9
+        lambd = packets_per_second * utilization
         iat_dist = partial(expovariate, lambd)
 
     elif args.traffic_gen == 'OnOff': 
@@ -157,8 +160,9 @@ def generate_synthetic_traffic_dataset(G, all_flows):
         ft.nodes[flow.dst]['device'].demux.ends[flow_id] = flow.pkt_sink
 
     # Run the simulation
+    logging.info(f"Network setup complete, running the simulation for {args.duration} seconds...")
     env.run(until=args.duration)
-
+    logging.info(f"Saving Results")
     # Now, we use our utility functions to aggregate the results into a per flow dataframe, and merge based on time
     dfs = [flow_to_df(*flow, weights, args.scheduler) for flow in all_flows.items()]
     df = merge_flow_dfs(dfs)
