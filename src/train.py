@@ -1,6 +1,7 @@
 # adapted from https://github.com/HUAWEI-Theory-Lab/deepqueuenet/blob/e84fc9bf09260e2a1bb586aa5c2024e346858569/train1000.py#L74
 import os
 import sys
+import json
 
 import numpy as np
 import torch
@@ -18,55 +19,18 @@ pytorch_seed = 0
 torch.manual_seed(pytorch_seed)
 
 
-
-batch_size = 64 * 2 * 2
-
-lr = 1e-3
-
-
-#### training config ####################
-
-identifier = "default"
-
-save_base_dir = f"saved/{identifier}"
-
-model_dir = "{}/saved_model".format(save_base_dir)
-saved_model_name = "best_model.pt"
-
-if not os.path.isdir(model_dir):
-    os.makedirs(model_dir)
-
-#########################################
-# base_dir = "./DeepQueueNet-synthetic-data/data" # this path may need to be changed/unsure of how we want to segment data
-# # if we are saving the data separately:  
-# train_data_dir = base_dir+"_train"
-# valid_data_dir = base_dir+"_valid"
-
-
-# TODO: Retreive right directory from the directory instead of explicit naming the file
-train_data_dir = ['./data/processed_data/train_processed.csv']
-valid_data_dir = ['./data/processed_data/test_processed.csv']
-
-
-writer = SummaryWriter()
-
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-# create update lr function
-
-train_epoch_losses = []
-eval_epoch_losses = []
-total_batch_num = 0
-iter_num = 0
-
-cached_loss = "Init"
-
-
 def save_model(model, out_file):
     torch.save(model.state_dict(), model_dir + "/" + out_file)
 
 
-def train_epochs(model, train_dl, valid_dl, epochs=10, start_label=0):
+def train_epochs(model, lr, train_dl, valid_dl, epochs=10, start_label=0):
+    train_epoch_losses = []
+    eval_epoch_losses = []
+    total_batch_num = 0
+    iter_num = 0
+
+    cached_loss = "Init"
+
     model = model.to(device)
     optimizer = torch.optim.Adam(
                                     model.parameters(),
@@ -120,21 +84,62 @@ def valid(model, eval_loss_func, validation_loader, eval_epoch_losses):
     return epoch_avg_loss
 
 if __name__ == "__main__":
-    mp.set_start_method('spawn')
-    train_ds = TracesDataset(train_data_dir,
-                             n_timesteps=42)
-    valid_ds = TracesDataset(valid_data_dir,
-                             n_timesteps=42)
-    train_dl = DataLoader(train_ds, batch_size = batch_size,
-                            shuffle = True,
-                            num_workers = 0, 
-                            # pin_memory = True,
-                            # sampler = SubsetRandomSampler(sample(dataset_indices, batch_size * batch_num_per_epoch))
-                            )
-    valid_dl = DataLoader(valid_ds, batch_size=batch_size, shuffle=False)
+    import argparse
 
-    model = deepPTM(in_feat=train_ds.num_feat)
-    train_epochs(model, train_dl=train_dl, valid_dl=valid_dl, epochs=500, start_label=0)
+    #### training config ####################
+
+    identifier = "default"
+    save_base_dir = f"saved/{identifier}"
+
+    model_dir = "{}/saved_model".format(save_base_dir)
+    saved_model_name = "best_model.pt"
+    if not os.path.isdir(model_dir):
+        os.makedirs(model_dir)
+
+
+    writer = SummaryWriter()
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    # create update lr function
+
+
+
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument(
+        "--train_config", "-c",
+        required=True,
+        help="This directory should include experiment specifications in 'specs.json,' and logging will be done in this directory as well.",
+    )
+    args = arg_parser.parse_args()
+    
+    specs = json.load(open(os.path.join(args.train_config)))
+    data_specs = specs["data_specs"]
+    model_specs = specs["model_specs"]
+    n_timesteps = specs["n_timesteps"]
+
+    mp.set_start_method('spawn')
+    train_ds = TracesDataset([data_specs["train_data_pth"]],
+                             n_timesteps=n_timesteps)
+    valid_ds = TracesDataset([data_specs["val_data_pth"]],
+                             n_timesteps=n_timesteps)
+    train_dl = DataLoader(train_ds,
+                          batch_size=specs['batch_size'],
+                          shuffle = True,
+                          num_workers = 0, 
+                          # pin_memory = True,
+                          # sampler = SubsetRandomSampler(sample(dataset_indices, batch_size * batch_num_per_epoch))
+                          )
+    valid_dl = DataLoader(valid_ds,
+                          batch_size=specs['batch_size'],
+                          shuffle=False)
+
+    model = deepPTM(in_feat=train_ds.num_feat,
+                    lstm_config=model_specs["lstm_config"],
+                    attn_config=model_specs["attn_config"],
+                    time_steps=n_timesteps
+                    )
+    train_epochs(model, lr=specs["train_lr"],
+                 train_dl=train_dl, valid_dl=valid_dl, epochs=specs["n_epochs"], start_label=0)
 
                     
     

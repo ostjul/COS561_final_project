@@ -1,0 +1,29 @@
+{
+    "desc" : "train deepnet ",
+  
+    "train_lr" : 1e-3,
+    "batch_size": 256,
+    "n_epochs" : 500,
+    "n_timesteps" : 42,
+  
+    "data_specs": {
+      "train_data_pth": "./data/processed_data/train_processed.csv",
+      "val_data_pth": "./data/processed_data/test_processed.csv"
+    },
+
+    "model_specs": {
+        "lstm_config":{
+            "width":[200,100],
+            "keep_prob": 1,
+            "bidirectional": true,
+            "dropout": 0
+        },
+
+        "attn_config":{
+            "dim": 64,
+            "num_heads": 3,
+            "out_dim": 32,
+            "dropout": 0
+        }
+    }
+}
