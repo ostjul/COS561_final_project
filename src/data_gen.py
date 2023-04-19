@@ -34,12 +34,12 @@ parser.add_argument('--mean-pkt-size', type=int, default=1000,
                     help='Mean packet size in bytes (default: 1000 bytes)')
 parser.add_argument('--scheduler', type=str, default='FIFO', choices=['DRR', 'WFQ', 'SP', 'FIFO'],
                     help='which scheduler to use. (options: DRR, WFQ, SP, FIFO  default: FIFO)')
-parser.add_argument('--traffic-gen', type=str, default='Poisson', choices=['Poisson', 'OnOff', 'MAP'],
-                    help='Which traffic generator to use for hosts. (options: Poisson, OnOff, MAP  default: Poisson)')
+parser.add_argument('--traffic-gen', type=str, default='Poisson', choices=['Poisson', 'OnOff'],
+                    help='Which traffic generator to use for hosts. (options: Poisson, OnOff  default: Poisson)')
 parser.add_argument('--num-ports', type=int, default=4,
                     help='Max number of ports in the switch (default: 4)')
-parser.add_argument('--num-flows', type=int, default=20,
-                    help='Number of flows to use in the simulation (default: 20)')
+parser.add_argument('--num-flows', type=int, default=100,
+                    help='Number of flows to use in the simulation (default: 100)')
 parser.add_argument('--duration', type=float, default=1000.,
                     help='Number of seconds to run the simulation (default: 10)')
 parser.add_argument('--output-dir', type=str, default='data',
@@ -67,7 +67,7 @@ def generate_synthetic_traffic_dataset(G, all_flows):
     # Here we setup various ways of generating traffic.
     if args.traffic_gen == 'Poisson':
         packets_per_second = args.port_rate / (args.mean_pkt_size * 8) # packets per second
-        utilization = 0.2 # TODO: Vary the link load between 0.1 and 0.9
+        utilization = 0.5 / args.num_flows # TODO: Vary the link load between 0.1 and 0.9
         lambd = packets_per_second * utilization
         iat_dist = partial(expovariate, lambd)
 

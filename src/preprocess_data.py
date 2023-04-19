@@ -32,18 +32,19 @@ def preprocess_csvs(csv_paths: list,
         
         # Data structure for storing rows with new load column
         processed_dfs = []
-        for device_idx, device in enumerate(unique_devices):
+        for device_idx, device in tqdm(enumerate(unique_devices), total=n_devices):
             if verbose:
                 print("Processing device {} ({}/{})".format(device, device_idx + 1, n_devices))
             for port_idx, port in enumerate(unique_ports):
-                print("\tProcessing port {} ({}/{})".format(port, port_idx + 1, n_ports))
+                if verbose:
+                    print("\tProcessing port {} ({}/{})".format(port, port_idx + 1, n_ports))
                 cur_device_port_df = df.loc[(df['cur_port'] == port) & (df['cur_hub'] == device)].copy()
                 len_data = len(cur_device_port_df)
                 if verbose:
                     print("\tdevice {} port {} has {} rows".format(device, port, len_data))
                 loads = []
                 # Calculate the load at the current port for each row
-                for row_idx, row in tqdm(cur_device_port_df.iterrows()):
+                for row_idx, row in cur_device_port_df.iterrows():
                     ingress_time = row['timestamp']
                     egress_time = row ['etime']
                     # load = count number of rows that have timestamp or etime between [ingress, egress]
