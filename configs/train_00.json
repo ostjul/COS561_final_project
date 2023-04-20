@@ -3,7 +3,7 @@
   
     "train_lr" : 1e-3,
     "batch_size": 256,
-    "n_epochs" : 500,
+    "n_epochs" : 5000,
     "n_timesteps" : 42,
   
     "data_specs": {

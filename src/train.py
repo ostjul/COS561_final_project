@@ -86,6 +86,16 @@ def valid(model, eval_loss_func, validation_loader, eval_epoch_losses):
 if __name__ == "__main__":
     import argparse
 
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument(
+        "--train_config", "-c",
+        required=True,
+        help="This directory should include experiment specifications in 'specs.json,' and logging will be done in this directory as well.",
+    )
+    args = arg_parser.parse_args()
+    
+    specs = json.load(open(os.path.join(args.train_config)))
+
     #### training config ####################
 
     identifier = "default"
@@ -101,18 +111,6 @@ if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # create update lr function
-
-
-
-    arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument(
-        "--train_config", "-c",
-        required=True,
-        help="This directory should include experiment specifications in 'specs.json,' and logging will be done in this directory as well.",
-    )
-    args = arg_parser.parse_args()
-    
-    specs = json.load(open(os.path.join(args.train_config)))
     data_specs = specs["data_specs"]
     model_specs = specs["model_specs"]
     n_timesteps = specs["n_timesteps"]

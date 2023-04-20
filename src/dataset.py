@@ -7,13 +7,20 @@ import os, sys
 # x_labels should be ['pkt_len', 'cur_port', 'priority', 'flow_id', 'FIFO', 'DRR', 'SP', 'WFQ', 'load', 'mean_load_port_0', 'mean_load_port_1', 'mean_load_port_2', 'mean_load_port_3']
 # y_label should be 'delay'
 
+x_labels_fid = ['pkt_len', 'cur_port', 'priority', 'flow_id', 'FIFO', 'DRR', 'SP', 'WFQ', 'load', 'mean_load_port_0', 'mean_load_port_1', 'mean_load_port_2', 'mean_load_port_3']
+x_labels_small = ['pkt_len', 'cur_port', 'priority', 'load', 'mean_load_port_0', 'mean_load_port_1', 'mean_load_port_2', 'mean_load_port_3']
+x_labels = ['pkt_len', 'cur_port', 'priority', 'FIFO', 'DRR', 'SP', 'WFQ', 'load', 'mean_load_port_0', 'mean_load_port_1', 'mean_load_port_2', 'mean_load_port_3']
+
+
+
 class TracesDataset(Dataset):
     def __init__(self,
                  csv_paths: list,
                  n_timesteps: int,
                  y_label: str= 'delay',
-                 x_labels: list= ['pkt_len', 'cur_port', 'priority', 'flow_id', 'FIFO', 'DRR', 'SP', 'WFQ', 'load', 'mean_load_port_0', 'mean_load_port_1', 'mean_load_port_2', 'mean_load_port_3']):
-
+                 x_labels: list= x_labels
+                 ):
+        
         self.n_timesteps = n_timesteps
         self.indices = [] # Tuples of (csv_idx, device_idx, row_idx)
 
