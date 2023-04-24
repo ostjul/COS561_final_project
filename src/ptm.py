@@ -30,7 +30,7 @@ class deepPTM(nn.Module):
         # TODO: Add initialization
 
         # Input LSTM
-        self.in_lstm_fw = self.in_lstm_bw = self._get_multi_layer_lstm(
+        self.in_lstm_fw = self._get_multi_layer_lstm(
                 in_feat=in_feat, hidden_size=lstm_config["width"], dropout=lstm_config["dropout"])
             
         # Use type 1 biderictonal lstm where both paths are independent across all alyers
