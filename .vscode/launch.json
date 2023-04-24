@@ -49,6 +49,28 @@
             "justMyCode": true
         },
         {
+            "name": "no_bidir_FIFO_poisson_4_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_no_bidir_FIFO_poisson_4.json"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "single_no_bidir_FIFO_poisson_4_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_single_no_bidir_FIFO_poisson_4.json"
+            ],
+            "justMyCode": true
+        },
+        {
             "name": "single_FIFO_poisson_4_config",
             "type": "python",
             "request": "launch",

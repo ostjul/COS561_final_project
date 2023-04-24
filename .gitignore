@@ -141,5 +141,7 @@ dmypy.json
 *.tfevents*
 events.out*
 
+\.tmp
+
 # Model weights
 \saved

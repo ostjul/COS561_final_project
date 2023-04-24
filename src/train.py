@@ -37,7 +37,7 @@ def train_epochs(model, lr, train_dl, valid_dl, epochs=10, start_label=0):
                                     model.parameters(),
                                     lr = lr
                                 )
-    loss_func = torch.nn.MSELoss()
+    loss_func = torch.nn.MSELoss(reduction="mean")
     eval_loss_func = copy.deepcopy(loss_func)
 
     valid_avg_loss = valid(model, eval_loss_func, valid_dl, eval_epoch_losses)
@@ -55,14 +55,15 @@ def train_epochs(model, lr, train_dl, valid_dl, epochs=10, start_label=0):
                 batch_y = batch_y.to(device)
                 current_batch_size = batch_x.shape[0]
                 tepoch.set_description(f"Epoch {i}")
-                epoch_batch_num += current_batch_size
+                epoch_batch_num += 1
                 out = model(batch_x)
                 loss = loss_func(out, batch_y)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()     
                 sum_of_loss += loss.item() 
-                tepoch.set_postfix(avg_loss=sum_of_loss/(batch_num+1))
+                batch_num = batch_num+1
+                tepoch.set_postfix(avg_loss=sum_of_loss/batch_num)
     
         writer.add_scalar("Loss/train", sum_of_loss/epoch_batch_num, i+ start_label)
         valid_avg_loss = valid(model, eval_loss_func, valid_dl, eval_epoch_losses)
