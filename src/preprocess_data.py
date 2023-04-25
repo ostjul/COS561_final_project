@@ -7,8 +7,8 @@ from tqdm import tqdm
 
 AVAILABLE_SCHEDULERS = ['FIFO', 'DRR', 'SP', 'WFQ']
 
-def numpy_ewma_vectorized(data, window):
-    alpha = 2 /(window + 1.0)
+def numpy_ewma_vectorized(data, alpha):
+    # alpha = 2 /(window + 1.0)
     alpha_rev = 1-alpha
     n = data.shape[0]
     pows = alpha_rev**(np.arange(n+1))
@@ -91,7 +91,7 @@ def preprocess_csvs(csv_paths: list,
                 # Assign load column and append to list of dataframe 
                 cur_device_port_df['load'] = load_bytes
                 # calculate an EWMA of the loads to give the more context information to the packet.
-                mean_load_device_port = numpy_ewma_vectorized(load_bytes) # Play around with this value.
+                mean_load_device_port = numpy_ewma_vectorized(load_bytes, 0.1) # Play around with this value.
                 cur_device_port_df['mean_load_port_{}'.format(port)] = mean_load_device_port
                 
                 # Add sub-df to list of dfs
