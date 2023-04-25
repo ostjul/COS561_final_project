@@ -123,13 +123,15 @@ def generate_synthetic_traffic_dataset(G, all_flows):
         weights = list(np.ones(len(all_flows)))
     
     # This will contain the dictionary of the forwarding tables for each switch.
-    forwarding_tables = {}
+    flow_to_port_tables = {}
+    port_to_next_hop_tables = {}
 
     # Setup the switches in the network
     for node_id in ft.nodes():
         node = ft.nodes[node_id]
-        forwarding_tables[node_id] = node['flow_to_port']
-        
+        flow_to_port_tables[node_id] = node['flow_to_port']
+        port_to_next_hop_tables[node_id] = node['port_to_nexthop']
+
         # Here we make a packet switch to simulate the queueing.
         if args.scheduler == 'FIFO':
             node['device'] = SimplePacketSwitch(env,
@@ -173,8 +175,11 @@ def generate_synthetic_traffic_dataset(G, all_flows):
     df.to_csv(os.path.join(args.output_dir, f'{args.output_name}.csv'), index=False)
 
     # Also write the forwarding table to the output 
-    with open(os.path.join(args.output_dir, f'{args.output_name}.ft'), 'wb') as f:
-        cloudpickle.dump(forwarding_tables, f)
+    with open(os.path.join(args.output_dir, f'{args.output_name}.port_to_nexthop'), 'wb') as f:
+        cloudpickle.dump(port_to_next_hop_tables, f)
+    with open(os.path.join(args.output_dir, f'{args.output_name}.flow_to_port'), 'wb') as f:
+        cloudpickle.dump(flow_to_port_tables, f)
+
 
 
 if __name__ == "__main__":

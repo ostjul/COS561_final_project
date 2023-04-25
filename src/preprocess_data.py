@@ -5,6 +5,8 @@ from torch.utils.data import Dataset
 import os, sys
 from tqdm import tqdm
 
+import datetime as dt
+
 AVAILABLE_SCHEDULERS = ['FIFO', 'DRR', 'SP', 'WFQ']
 def preprocess_csvs(csv_paths: list,
                     verbose: bool,
@@ -40,31 +42,43 @@ def preprocess_csvs(csv_paths: list,
             if verbose:
                 print("Processing device {} ({}/{})".format(device, device_idx + 1, n_devices))
             for port_idx, port in enumerate(unique_ports):
+                start_time_2 = dt.datetime.now()
                 if verbose:
                     print("\tProcessing port {} ({}/{})".format(port, port_idx + 1, n_ports))
                 cur_device_port_df = df.loc[(df['cur_port'] == port) & (df['cur_hub'] == device)].copy()
                 len_data = len(cur_device_port_df)
                 if verbose:
                     print("\tdevice {} port {} has {} rows".format(device, port, len_data))
-                loads = []
+                
+                # BEGIN NEW CODE
+                ingress_times = cur_device_port_df['timestamp'].values
+                egress_times = cur_device_port_df['etime'].values
+                cur_device_port_df['load'] = ((ingress_times[:,np.newaxis] < egress_times) & (egress_times[:,np.newaxis] > ingress_times)).sum(axis=1)
+                # END NEW CODE   
+
+                # BEGIN OLD CODE 
                 # Calculate the load at the current port for each row
-                for row_idx, row in cur_device_port_df.iterrows():
-                    ingress_time = row['timestamp']
-                    egress_time = row ['etime']
-                    # load = count number of rows that have timestamp or etime between [ingress, egress]
-                    load_rows = cur_device_port_df[
-                        # other row start in the middle of current row
-                        ((cur_device_port_df['timestamp'] >= ingress_time) & (cur_device_port_df['timestamp'] < egress_time)) | 
-                        # other row ends in middle of current row
-                        ((cur_device_port_df['etime'] >= ingress_time) & (cur_device_port_df['etime'] < egress_time)) | 
-                        # other row starts before current row and ends after current row
-                        ((cur_device_port_df['timestamp'] < ingress_time) & (cur_device_port_df['etime'] > egress_time))]
-                    # Count number of rows that match the criteria
-                    load = len(load_rows)
-                    loads.append(load)
+                # loads = []
+                # for row_idx, row in cur_device_port_df.iterrows():
+                #     ingress_time = row['timestamp']
+                #     egress_time = row ['etime']
+                #     # load = count number of rows that have timestamp or etime between [ingress, egress]
+                #     load_rows = cur_device_port_df[
+                #         # other row start in the middle of current row
+                #         ((cur_device_port_df['timestamp'] >= ingress_time) & (cur_device_port_df['timestamp'] < egress_time)) | 
+                #         # other row ends in middle of current row
+                #         ((cur_device_port_df['etime'] >= ingress_time) & (cur_device_port_df['etime'] < egress_time)) | 
+                #         # other row starts before current row and ends after current row
+                #         ((cur_device_port_df['timestamp'] < ingress_time) & (cur_device_port_df['etime'] > egress_time))]
+                #     # Count number of rows that match the criteria
+                #     load = len(load_rows)
+                #     loads.append(load)
                 # Assign load column and append to list of dataframe 
-                cur_device_port_df['load'] = loads
+                # cur_device_port_df['load'] = loads
+                # END OLD CODE
+
                 processed_dfs.append(cur_device_port_df)
+                print("Time taken: {}".format(dt.datetime.now() - start_time_2))
             if verbose:
                 print("")
         # Concatenate data frames for each device/port combination
