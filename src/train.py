@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 import torch.multiprocessing as mp
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
+from datetime import datetime
 
 import copy
 
@@ -36,8 +37,12 @@ def train_epochs(model, lr, train_dl, valid_dl, epochs=10, start_label=0):
                                     model.parameters(),
                                     lr = lr
                                 )
-    loss_func = torch.nn.MSELoss()
+    loss_func = torch.nn.MSELoss(reduction="mean")
     eval_loss_func = copy.deepcopy(loss_func)
+
+    valid_avg_loss = valid(model, eval_loss_func, valid_dl, eval_epoch_losses)
+    writer.add_scalar("Loss/valid", valid_avg_loss, start_label)
+
     for i in range(epochs):
         with tqdm(train_dl, unit="batch") as tepoch:
             model.train()
@@ -50,18 +55,19 @@ def train_epochs(model, lr, train_dl, valid_dl, epochs=10, start_label=0):
                 batch_y = batch_y.to(device)
                 current_batch_size = batch_x.shape[0]
                 tepoch.set_description(f"Epoch {i}")
-                epoch_batch_num += current_batch_size
+                epoch_batch_num += 1
                 out = model(batch_x)
                 loss = loss_func(out, batch_y)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()     
                 sum_of_loss += loss.item() 
-                tepoch.set_postfix(avg_loss=sum_of_loss/(batch_num+1))
+                batch_num = batch_num+1
+                tepoch.set_postfix(avg_loss=sum_of_loss/batch_num)
     
         writer.add_scalar("Loss/train", sum_of_loss/epoch_batch_num, i+ start_label)
         valid_avg_loss = valid(model, eval_loss_func, valid_dl, eval_epoch_losses)
-        writer.add_scalar("Loss/valid", valid_avg_loss, i+ start_label)
+        writer.add_scalar("Loss/valid", valid_avg_loss, i + start_label + 1)
 
 def valid(model, eval_loss_func, validation_loader, eval_epoch_losses):
     model.eval()
@@ -86,24 +92,6 @@ def valid(model, eval_loss_func, validation_loader, eval_epoch_losses):
 if __name__ == "__main__":
     import argparse
 
-    #### training config ####################
-
-    identifier = "default"
-    save_base_dir = f"saved/{identifier}"
-
-    model_dir = "{}/saved_model".format(save_base_dir)
-    saved_model_name = "best_model.pt"
-    if not os.path.isdir(model_dir):
-        os.makedirs(model_dir)
-
-
-    writer = SummaryWriter()
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-    # create update lr function
-
-
-
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument(
         "--train_config", "-c",
@@ -113,19 +101,46 @@ if __name__ == "__main__":
     args = arg_parser.parse_args()
     
     specs = json.load(open(os.path.join(args.train_config)))
+
+    #### training config ####################
+
+    identifier = "default"
+
+    if not "save_pth" in specs:
+        save_base_dir = f"saved/{identifier}"
+        model_dir = "{}/saved_model".format(save_base_dir)
+    else:
+        model_dir = os.path.join(specs["save_pth"], specs["exp_name"] + "_lr_{}_steps_{}".format(specs["train_lr"],specs["n_timesteps"]))
+
+    saved_model_name = "best_model.pt"
+    if not os.path.isdir(model_dir):
+        os.makedirs(model_dir)
+
+
+    current_time = datetime.now().strftime('%b%d_%H-%M-%S')
+    summary_dir = "runs_ts"
+    writer = SummaryWriter(os.path.join(summary_dir, specs["exp_name"] + "_lr_{}_steps_{}_".format(specs["train_lr"],specs["n_timesteps"]) + current_time))
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    # create update lr function
     data_specs = specs["data_specs"]
     model_specs = specs["model_specs"]
     n_timesteps = specs["n_timesteps"]
+    lr = specs["train_lr"]
+
+    # Get data
+    train_data = [data_specs["train_data_pth"]] if not isinstance(data_specs["train_data_pth"], list) else data_specs["train_data_pth"]
+    val_data = [data_specs["val_data_pth"]] if not isinstance(data_specs["val_data_pth"], list) else data_specs["val_data_pth"]
 
     mp.set_start_method('spawn')
-    train_ds = TracesDataset([data_specs["train_data_pth"]],
+    train_ds = TracesDataset(train_data,
                              n_timesteps=n_timesteps)
-    valid_ds = TracesDataset([data_specs["val_data_pth"]],
+    valid_ds = TracesDataset(val_data,
                              n_timesteps=n_timesteps)
     train_dl = DataLoader(train_ds,
                           batch_size=specs['batch_size'],
                           shuffle = True,
-                          num_workers = 0, 
+                          num_workers = 4, 
                           # pin_memory = True,
                           # sampler = SubsetRandomSampler(sample(dataset_indices, batch_size * batch_num_per_epoch))
                           )
@@ -138,7 +153,7 @@ if __name__ == "__main__":
                     attn_config=model_specs["attn_config"],
                     time_steps=n_timesteps
                     )
-    train_epochs(model, lr=specs["train_lr"],
+    train_epochs(model, lr=lr,
                  train_dl=train_dl, valid_dl=valid_dl, epochs=specs["n_epochs"], start_label=0)
 
                     

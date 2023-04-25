@@ -138,8 +138,11 @@ dmypy.json
 
 # Tensorboard checkpoints
 \runs
+\runs_ts
 *.tfevents*
 events.out*
+
+\.tmp
 
 # Model weights
 \saved

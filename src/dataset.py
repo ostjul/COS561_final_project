@@ -7,24 +7,44 @@ import os, sys
 # x_labels should be ['pkt_len', 'cur_port', 'priority', 'flow_id', 'FIFO', 'DRR', 'SP', 'WFQ', 'load', 'mean_load_port_0', 'mean_load_port_1', 'mean_load_port_2', 'mean_load_port_3']
 # y_label should be 'delay'
 
+x_labels_fid = ['pkt_len', 'cur_port', 'priority', 'flow_id', 'FIFO', 'DRR', 'SP', 'WFQ', 'load']
+x_labels_small = ['pkt_len', 'cur_port', 'priority', 'load']
+x_labels_mid = ['pkt_len', 'cur_port', 'priority', 'FIFO', 'DRR', 'SP', 'WFQ', 'load']
+
+
+
 class TracesDataset(Dataset):
     def __init__(self,
                  csv_paths: list,
                  n_timesteps: int,
                  y_label: str= 'delay',
-                 x_labels: list= ['pkt_len', 'cur_port', 'priority', 'flow_id', 'FIFO', 'DRR', 'SP', 'WFQ', 'load', 'mean_load_port_0', 'mean_load_port_1', 'mean_load_port_2', 'mean_load_port_3']):
-
+                 x_labels: list= x_labels_mid.copy()
+                 ):
+        
         self.n_timesteps = n_timesteps
         self.indices = [] # Tuples of (csv_idx, device_idx, row_idx)
 
         # Store list of list of np.arrays for xs and ys
         self.xs = []
         self.ys = []
-        
+
+        # Add load of all ports to x_labels
+        first_df =  pd.read_csv(csv_paths[0])
+        max_port_number = first_df.cur_port.max()
+        for port_idx in range(max_port_number+1):
+            new_port_load = 'mean_load_port_{}'.format(port_idx)
+            if new_port_load not in x_labels:
+                x_labels.append(new_port_load)
+
+        self.x_labels = x_labels
+
         # Iterate through all CSVs
         for csv_idx, csv_path in enumerate(csv_paths):
             df = pd.read_csv(csv_path)
-            
+
+            if 'pkt len (byte)' in df.columns:
+                df = df.rename({'pkt len (byte)': 'pkt_len'}, axis='columns')
+
             for x_label in x_labels:
                 assert x_label in df.columns, "Column {} not found in {}".format(x_label, csv_path)
             assert y_label in df.columns, "Column {} not found in {}".format(y_label, csv_path)
@@ -38,7 +58,8 @@ class TracesDataset(Dataset):
             for device_idx, unique_device in enumerate(unique_devices):
                 # Obtain rows with this device and sort by etime
                 device_data = df.loc[df['cur_hub'] == unique_device]
-                device_data = device_data.sort_values(['etime'])
+                # device_data = device_data.sort_values(['etime'])
+                device_data = device_data.sort_values(['timestamp'])                
 
                 # Separate x and y values for this device
                 xs_device = device_data[x_labels].to_numpy(dtype=np.float32)
@@ -59,7 +80,7 @@ class TracesDataset(Dataset):
             self.xs.append(xs_csv)
             self.ys.append(ys_csv)
 
-        self.num_feat = self.xs[0][0].shape[-1]
+        self.num_feat = len(self.x_labels)
 
     def __getitem__(self, index):
         # Obtain the index for CSV, device, and row start

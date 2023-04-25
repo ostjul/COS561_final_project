@@ -16,12 +16,122 @@
             "justMyCode": true
         },
         {
+            "name": "Fattree16_poisson_simple",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_fattree16_poisson.json"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "no_bidir_Fattree16_poisson_simple",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_no_bidir_fattree16_poisson.json"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "FIFO_poisson_4_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_FIFO_poisson_4.json"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "no_bidir_FIFO_poisson_4_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_no_bidir_FIFO_poisson_4.json"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "single_no_bidir_20_flows_FIFO_poisson_4_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_single_no_bidir_20_flows_FIFO_poisson_4.json"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "single_no_bidir_60_flows_FIFO_poisson_4_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_single_no_bidir_60_flows_FIFO_poisson_4.json"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "single_no_bidir_FIFO_poisson_4_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_single_no_bidir_FIFO_poisson_4.json"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "single_FIFO_poisson_4_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/single_train_FIFO_poisson_4.json"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "FIFO_poisson_8_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_FIFO_poisson_8.json"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "FIFO_poisson_16_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_FIFO_poisson_16.json"
+            ],
+            "justMyCode": true
+        },
+        {
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
         }
     ]
 }
