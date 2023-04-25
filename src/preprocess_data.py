@@ -52,7 +52,7 @@ def preprocess_csvs(csv_paths: list,
                 # BEGIN NEW CODE
                 ingress_times = cur_device_port_df['timestamp'].values
                 egress_times = cur_device_port_df['etime'].values
-                cur_device_port_df['load'] = ((ingress_times[:,np.newaxis] < egress_times) & (egress_times[:,np.newaxis] > ingress_times)).sum(axis=1)
+                loads = ((ingress_times[:,np.newaxis] < egress_times) & (egress_times[:,np.newaxis] > ingress_times)).sum(axis=1)
                 # END NEW CODE   
 
                 # BEGIN OLD CODE 
