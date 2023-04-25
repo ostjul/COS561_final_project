@@ -68,7 +68,7 @@ def preprocess_csvs(csv_paths: list,
                 # (N, N)
                 loads = ((ingress_times[:,np.newaxis] < egress_times) & (ingress_times[:,np.newaxis] > ingress_times))
                 # Get the number of bytes that were in the queue when each packet ingressed.
-                load_bytes = loads @ cur_device_port_df['pkt len (byte)'].values
+                load_bytes = loads @ cur_device_port_df['pkt_len'].values
                 # END NEW CODE   
 
                 # BEGIN OLD CODE 
