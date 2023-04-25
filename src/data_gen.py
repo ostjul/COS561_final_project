@@ -25,13 +25,12 @@ from ns.utils.generators.MAP_MSP_generator import BMAP_generator
 from data_gen_utils import flow_to_df, merge_flow_dfs
 
 parser = argparse.ArgumentParser(description='Data Generation Script for DeepQueueNet using ns.py')
-
-parser.add_argument('--port-rate', type=int, default=1024 * 100, 
-                    help='Port Rate in bits per second (default: 100 Kbps)')
-parser.add_argument('--buffer-size', type=int, default=1024 * 1024, # TODO: What is a realistic number for this?
-                    help='Buffer Size in bytes (default: 1 MB)')
+parser.add_argument('--port-rate', type=int, default=1024 * 1024 * 50, 
+                    help='Port Rate in bits per second (default: 50 Mbps)')
+parser.add_argument('--buffer-size', type=int, default=1024 * 100,
+                    help='Buffer Size in bytes (default: 100 KB)')
 parser.add_argument('--mean-pkt-size', type=int, default=1000,
-                    help='Mean packet size in bytes (default: 1000 bytes)')
+                    help='Mean packet size in bytes (default: 1000 B)')
 parser.add_argument('--scheduler', type=str, default='FIFO', choices=['DRR', 'WFQ', 'SP', 'FIFO'],
                     help='which scheduler to use. (options: DRR, WFQ, SP, FIFO  default: FIFO)')
 parser.add_argument('--traffic-gen', type=str, default='Poisson', choices=['Poisson', 'OnOff'],
@@ -40,7 +39,7 @@ parser.add_argument('--num-ports', type=int, default=4,
                     help='Max number of ports in the switch (default: 4)')
 parser.add_argument('--num-flows', type=int, default=100,
                     help='Number of flows to use in the simulation (default: 100)')
-parser.add_argument('--duration', type=float, default=1000.,
+parser.add_argument('--duration', type=float, default=30.,
                     help='Number of seconds to run the simulation (default: 10)')
 parser.add_argument('--output-dir', type=str, default='data',
                     help='Directory to write the csv results to (default: sim_data)')
@@ -66,8 +65,9 @@ def generate_synthetic_traffic_dataset(G, all_flows):
 
     # Here we setup various ways of generating traffic.
     if args.traffic_gen == 'Poisson':
+
         packets_per_second = args.port_rate / (args.mean_pkt_size * 8) # packets per second
-        utilization = 0.5 / args.num_flows # TODO: Vary the link load between 0.1 and 0.9
+        utilization = 0.6 / args.num_flows # TODO: Vary the link load between 0.1 and 0.9
         lambd = packets_per_second * utilization
         iat_dist = partial(expovariate, lambd)
 
@@ -173,13 +173,14 @@ def generate_synthetic_traffic_dataset(G, all_flows):
         os.makedirs(args.output_dir)
     # Write to csv file.
     df.to_csv(os.path.join(args.output_dir, f'{args.output_name}.csv'), index=False)
+    # This prints the number of non-link datapoints in our pipeline.
+    print(len(df[df['cur_hub'] <= '19']))
 
     # Also write the forwarding table to the output 
     with open(os.path.join(args.output_dir, f'{args.output_name}.port_to_nexthop'), 'wb') as f:
         cloudpickle.dump(port_to_next_hop_tables, f)
     with open(os.path.join(args.output_dir, f'{args.output_name}.flow_to_port'), 'wb') as f:
         cloudpickle.dump(flow_to_port_tables, f)
-
 
 
 if __name__ == "__main__":
@@ -193,9 +194,3 @@ if __name__ == "__main__":
 
     # Generate the synthetic traffic dataset
     generate_synthetic_traffic_dataset(ft, all_flows)
-
-    
-
-
-
-

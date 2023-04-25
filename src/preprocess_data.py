@@ -6,6 +6,20 @@ import os, sys
 from tqdm import tqdm
 
 AVAILABLE_SCHEDULERS = ['FIFO', 'DRR', 'SP', 'WFQ']
+
+def numpy_ewma_vectorized(data, window):
+    alpha = 2 /(window + 1.0)
+    alpha_rev = 1-alpha
+    n = data.shape[0]
+    pows = alpha_rev**(np.arange(n+1))
+    scale_arr = 1/pows[:-1]
+    offset = data[0]*pows[1:]
+    pw0 = alpha*alpha_rev**(n-1)
+    mult = data*pw0*scale_arr
+    cumsums = mult.cumsum()
+    out = offset + cumsums*scale_arr[::-1]
+    return out
+
 def preprocess_csvs(csv_paths: list,
                     verbose: bool,
                     csv_save_dir: str=None):
@@ -40,7 +54,7 @@ def preprocess_csvs(csv_paths: list,
             if verbose:
                 print("Processing device {} ({}/{})".format(device, device_idx + 1, n_devices))
             for port_idx, port in enumerate(unique_ports):
-                start_time_2 = dt.datetime.now()
+                
                 if verbose:
                     print("\tProcessing port {} ({}/{})".format(port, port_idx + 1, n_ports))
                 cur_device_port_df = df.loc[(df['cur_port'] == port) & (df['cur_hub'] == device)].copy()
@@ -51,7 +65,10 @@ def preprocess_csvs(csv_paths: list,
                 # BEGIN NEW CODE
                 ingress_times = cur_device_port_df['timestamp'].values
                 egress_times = cur_device_port_df['etime'].values
-                loads = ((ingress_times[:,np.newaxis] < egress_times) & (egress_times[:,np.newaxis] > ingress_times)).sum(axis=1)
+                # (N, N)
+                loads = ((ingress_times[:,np.newaxis] < egress_times) & (ingress_times[:,np.newaxis] > ingress_times))
+                # Get the number of bytes that were in the queue when each packet ingressed.
+                load_bytes = loads @ cur_device_port_df['pkt len (byte)'].values
                 # END NEW CODE   
 
                 # BEGIN OLD CODE 
@@ -72,9 +89,9 @@ def preprocess_csvs(csv_paths: list,
                 #     load = len(load_rows)
                 #     loads.append(load)
                 # Assign load column and append to list of dataframe 
-                cur_device_port_df['load'] = loads
-                # Calculate mean load for this port on this device
-                mean_load_device_port = np.mean(loads)
+                cur_device_port_df['load'] = load_bytes
+                # calculate an EWMA of the loads to give the more context information to the packet.
+                mean_load_device_port = cur_device_port_df['load'].ewm(alpha=0.1).mean() # Play around with this value.
                 cur_device_port_df['mean_load_port_{}'.format(port)] = mean_load_device_port
                 
                 # Add sub-df to list of dfs
