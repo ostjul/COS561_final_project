@@ -91,7 +91,7 @@ def preprocess_csvs(csv_paths: list,
                 # Assign load column and append to list of dataframe 
                 cur_device_port_df['load'] = load_bytes
                 # calculate an EWMA of the loads to give the more context information to the packet.
-                mean_load_device_port = cur_device_port_df['load'].ewm(alpha=0.1).mean() # Play around with this value.
+                mean_load_device_port = numpy_ewma_vectorized(load_bytes) # Play around with this value.
                 cur_device_port_df['mean_load_port_{}'.format(port)] = mean_load_device_port
                 
                 # Add sub-df to list of dfs
