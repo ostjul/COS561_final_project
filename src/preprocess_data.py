@@ -9,13 +9,18 @@ from tqdm import tqdm
 AVAILABLE_SCHEDULERS = ['FIFO', 'DRR', 'SP', 'WFQ']
 def preprocess_csvs(csv_paths: list,
                     verbose: bool,
-                    csv_save_dir: str=None):
+                    csv_save_dir: str=None,
+                    link_ids=None):
 
     non_existent_paths = []
     for csv_path in csv_paths:
         if not os.path.exists(csv_path):
             non_existent_paths.append(csv_path)
-
+            
+    # IDs for link
+    if link_ids is None:
+        link_ids = [i for i in range(20,36)]
+        
     if len(non_existent_paths) > 0:
         raise ValueError("{} paths in csv_paths do not exist: {}".format(len(non_existent_paths), non_existent_paths))
 
@@ -38,6 +43,11 @@ def preprocess_csvs(csv_paths: list,
         # Data structure for storing rows with new load column
         processed_dfs = []
         for device_idx, device in tqdm(enumerate(unique_devices), total=n_devices):
+            # Skip links
+            if device in link_ids:
+                continue
+            mean_loads = {}
+            device_dfs = []
             if verbose:
                 print("Processing device {} ({}/{})".format(device, device_idx + 1, n_devices))
             for port_idx, port in enumerate(unique_ports):
@@ -63,14 +73,26 @@ def preprocess_csvs(csv_paths: list,
                     # Count number of rows that match the criteria
                     load = len(load_rows)
                     loads.append(load)
+                
                 # Assign load column and append to list of dataframe 
                 cur_device_port_df['load'] = loads
                 # Calculate mean load for this port on this device
                 mean_load_device_port = np.mean(loads)
-                cur_device_port_df['mean_load_port_{}'.format(port)] = mean_load_device_port
+                mean_loads[port] = mean_load_device_port
                 
                 # Add sub-df to list of dfs
-                processed_dfs.append(cur_device_port_df)
+                # processed_dfs.append(cur_device_port_df)
+                device_dfs.append(cur_device_port_df)
+            device_dfs = pd.concat(device_dfs)
+            
+            for port, mean_load in mean_loads.items():
+                device_dfs['mean_load_port_{}'.format(port)] = mean_load
+            
+            # Fill NaNs with 0's
+            device_dfs = device_dfs.fillna(0)
+            processed_dfs.append(device_dfs)
+                
+                
                 
             if verbose:
                 print("")
