@@ -58,7 +58,8 @@ class TracesDataset(Dataset):
             for device_idx, unique_device in enumerate(unique_devices):
                 # Obtain rows with this device and sort by etime
                 device_data = df.loc[df['cur_hub'] == unique_device]
-                device_data = device_data.sort_values(['etime'])
+                # device_data = device_data.sort_values(['etime'])
+                device_data = device_data.sort_values(['timestamp'])                
 
                 # Separate x and y values for this device
                 xs_device = device_data[x_labels].to_numpy(dtype=np.float32)

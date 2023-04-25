@@ -110,7 +110,7 @@ if __name__ == "__main__":
         save_base_dir = f"saved/{identifier}"
         model_dir = "{}/saved_model".format(save_base_dir)
     else:
-        model_dir = os.path.join(specs["save_pth"], specs["exp_name"] + "_lr_{}".format(specs["train_lr"]))
+        model_dir = os.path.join(specs["save_pth"], specs["exp_name"] + "_lr_{}_steps_{}".format(specs["train_lr"],specs["n_timesteps"]))
 
     saved_model_name = "best_model.pt"
     if not os.path.isdir(model_dir):
@@ -118,7 +118,8 @@ if __name__ == "__main__":
 
 
     current_time = datetime.now().strftime('%b%d_%H-%M-%S')
-    writer = SummaryWriter(os.path.join("runs", specs["exp_name"] + "_lr_{}_".format(specs["train_lr"]) + current_time))
+    summary_dir = "runs_ts"
+    writer = SummaryWriter(os.path.join(summary_dir, specs["exp_name"] + "_lr_{}_steps_{}_".format(specs["train_lr"],specs["n_timesteps"]) + current_time))
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # create update lr function

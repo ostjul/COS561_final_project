@@ -6,11 +6,11 @@
     "n_epochs" : 5000,
     "n_timesteps" : 21,
     "save_pth": "/scratch/gpfs/jo5483/data/deepQueue/models",
-    "exp_name": "single_no_bidir_sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4",
+    "exp_name": "single_no_bidir_sch_FIFO-tgen_Poisson-n_flows_60-n_ports_4",
   
     "data_specs": {
-      "train_data_pth": ["/scratch/gpfs/jo5483/data/deepQueue/processed_data/itr1/sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4_processed.csv" ],
-      "val_data_pth": ["/scratch/gpfs/jo5483/data/deepQueue/processed_data/itr5/sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4_processed.csv"]
+      "train_data_pth": ["/scratch/gpfs/jo5483/data/deepQueue/processed_data/itr1/sch_FIFO-tgen_Poisson-n_flows_60-n_ports_4_processed.csv" ],
+      "val_data_pth": ["/scratch/gpfs/jo5483/data/deepQueue/processed_data/itr5/sch_FIFO-tgen_Poisson-n_flows_60-n_ports_4_processed.csv"]
     },
 
     "model_specs": {
