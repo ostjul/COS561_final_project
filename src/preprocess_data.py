@@ -12,7 +12,7 @@ def numpy_ewma_vectorized(data, alpha):
     alpha_rev = 1-alpha
     n = data.shape[0]
     pows = alpha_rev**(np.arange(n+1))
-    scale_arr = 1/pows[:-1]
+    scale_arr = 1/(1e-9 + pows[:-1])
     offset = data[0]*pows[1:]
     pw0 = alpha*alpha_rev**(n-1)
     mult = data*pw0*scale_arr
@@ -68,7 +68,11 @@ def preprocess_csvs(csv_paths: list,
                 # (N, N)
                 loads = ((ingress_times[:,np.newaxis] < egress_times) & (ingress_times[:,np.newaxis] > ingress_times))
                 # Get the number of bytes that were in the queue when each packet ingressed.
-                load_bytes = loads @ cur_device_port_df['pkt_len'].values
+                if 'pkt len (byte)' in cur_device_port_df.columns:
+
+                    load_bytes = loads @ cur_device_port_df['pkt len (byte)'].values
+                else:
+                    load_bytes = loads @ cur_device_port_df['pkt_len'].values
                 # END NEW CODE   
 
                 # BEGIN OLD CODE 
@@ -91,7 +95,8 @@ def preprocess_csvs(csv_paths: list,
                 # Assign load column and append to list of dataframe 
                 cur_device_port_df['load'] = load_bytes
                 # calculate an EWMA of the loads to give the more context information to the packet.
-                mean_load_device_port = numpy_ewma_vectorized(load_bytes, 0.1) # Play around with this value.
+                if len(load_bytes) > 0:
+                    mean_load_device_port = numpy_ewma_vectorized(load_bytes, 0.05) # Play around with this value.
                 cur_device_port_df['mean_load_port_{}'.format(port)] = mean_load_device_port
                 
                 # Add sub-df to list of dfs
