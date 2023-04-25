@@ -22,7 +22,11 @@ def preprocess_csvs(csv_paths: list,
     for csv_idx, csv_path in enumerate(csv_paths):
         print("Processing {}/{} csv: {}".format(csv_idx + 1, n_csvs, csv_path))
 
-        df = df = pd.read_csv(csv_path)
+        df = pd.read_csv(csv_path)
+        
+        # replace 'timestamp (sec)' with 'timestamp'
+        if 'timestamp' not in df.columns:
+            df = df.rename(columns={'timestamp (sec)': 'timestamp'})
         df = df.sort_values(['cur_hub', 'cur_port', 'timestamp'])
 
         unique_ports = df['cur_port'].unique()
