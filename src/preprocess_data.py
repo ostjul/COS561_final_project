@@ -5,6 +5,7 @@ from torch.utils.data import Dataset
 import os, sys
 from tqdm import tqdm
 
+
 AVAILABLE_SCHEDULERS = ['FIFO', 'DRR', 'SP', 'WFQ']
 def preprocess_csvs(csv_paths: list,
                     verbose: bool,
@@ -64,18 +65,17 @@ def preprocess_csvs(csv_paths: list,
                     loads.append(load)
                 # Assign load column and append to list of dataframe 
                 cur_device_port_df['load'] = loads
+                # Calculate mean load for this port on this device
+                mean_load_device_port = np.mean(loads)
+                cur_device_port_df['mean_load_port_{}'.format(port)] = mean_load_device_port
+                
+                # Add sub-df to list of dfs
                 processed_dfs.append(cur_device_port_df)
+                
             if verbose:
                 print("")
         # Concatenate data frames for each device/port combination
         processed_df = pd.concat(processed_dfs)
-        
-        # Calculate average load for each port
-        for port in unique_ports:
-            avg_load = np.mean(processed_df[processed_df['cur_port'] == port]['load'].to_numpy())
-            processed_df['mean_load_port_{}'.format(port)] = avg_load
-            if verbose:
-                print("average load for port {}: {}".format(port, avg_load))
         
         # Calculate the delay time (predicted variable)
         processed_df['delay'] = processed_df['etime'] - processed_df['timestamp']
