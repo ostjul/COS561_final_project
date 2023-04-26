@@ -1,148 +1,63 @@
-
-
-# adapted from https://github.com/HUAWEI-Theory-Lab/deepqueuenet/blob/e84fc9bf09260e2a1bb586aa5c2024e346858569/train1000.py#L74
-import os
-import sys
-import json
-
 import numpy as np
-import torch
-from torch.utils.data import DataLoader
-import torch.multiprocessing as mp
-from tqdm import tqdm
-from torch.utils.tensorboard import SummaryWriter
-
-import copy
-
-from ptm import deepPTM 
-from dataset import TracesDataset 
-
-pytorch_seed = 0
-torch.manual_seed(pytorch_seed)
+import pandas as pd
 
 
-def save_model(model, out_file):
-    torch.save(model.state_dict(), model_dir + "/" + out_file)
+block_size = 42 # TODO: Get this from the paper.
 
+def scrub(df):
+    # Zeros out all the etimes to ensure we don't have knowledge of egress times during inference.
+    df['etime'] = np.zeros(len(df))
+    return df
 
-def train_epochs(model, lr, train_dl, valid_dl, epochs=10, start_label=0):
-    train_epoch_losses = []
-    eval_epoch_losses = []
-    total_batch_num = 0
-    iter_num = 0
+# TODO: Make this a Ray actor
+class Device:
+ 
+    def __init__(self, id, df):
 
-    cached_loss = "Init"
+        self.id = id
+        self.timestamp = 0.0
+        self.num_updates = 0
+        self.df = df
 
-    model = model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr = lr)
-    loss_func = torch.nn.MSELoss()
-    eval_loss_func = copy.deepcopy(loss_func)
-    for i in range(epochs):
-        with tqdm(train_dl, unit="batch") as tepoch:
-            model.train()
-            batch_num = 0
-            sum_of_loss = 0
-            epoch_batch_num = 0 # total number of batches seen so far in epoch
-            
-            for batch_x, batch_y in tepoch:
-                batch_x = batch_x.to(device)
-                batch_y = batch_y.to(device)
-                current_batch_size = batch_x.shape[0]
-                tepoch.set_description(f"Epoch {i}")
-                epoch_batch_num += current_batch_size
-                out = model(batch_x)
-                loss = loss_func(out, batch_y)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()     
-                sum_of_loss += loss.item() 
-                tepoch.set_postfix(avg_loss=sum_of_loss/(batch_num+1))
-    
-        writer.add_scalar("Loss/train", sum_of_loss/epoch_batch_num, i+ start_label)
-        valid_avg_loss = valid(model, eval_loss_func, valid_dl, eval_epoch_losses)
-        writer.add_scalar("Loss/valid", valid_avg_loss, i+ start_label)
+    def forward_block(self, model, port_to_nexthop, flow_to_port):
+        # Get the next block of packets to forward from this device.
+        block = self.df[self.df['timestamp'] > self.timestamp].iloc[:block_size].copy() 
+        if len(block) == 0:
+            return (self.timestamp, self.df), {}
 
-def valid(model, eval_loss_func, validation_loader, eval_epoch_losses):
-    model.eval()
-    eval_loss = 0.0
-    with torch.no_grad():
-        eval_epoch_batch_num = len(validation_loader)
-        for batch_x, batch_y in validation_loader:
-            batch_x = batch_x.to(device)
-            batch_y = batch_y.to(device)
-            out = model(batch_x)
-            loss = eval_loss_func(out, batch_y)
-            eval_loss += loss.item()
+        # TODO: Need to do our block preprocessing here.
+        # processed_block = ...
+        
+        # TODO: Predict the egress times using the trained network.
+        predicted_delays = np.ones(len(block)) * 0.003 # model(processed_block)
 
-        epoch_avg_loss = eval_loss / eval_epoch_batch_num
-        eval_epoch_losses.append(epoch_avg_loss)
+        # Don't actually simulate links. (this will only work for fattree16, should add an is_link flag to the device class for more generic behavior)
+        etimes = (block['timestamp'] + predicted_delays) if self.id < 20 else block['etime']
 
-        ### save the model for the epoch with best eval loss
-        if epoch_avg_loss == min(eval_epoch_losses):
-            save_model(model, saved_model_name)
-    return epoch_avg_loss
+        # TODO: Can we vectorize these?
+        block['cur_hub'] = block.apply(lambda x: port_to_nexthop[self.id][x['cur_port']], axis=1)
+        block['cur_port'] = block.apply(lambda x: (flow_to_port[x['cur_hub']]).get(x['flow_id'], -1), axis=1)
+        block['path'] = block.apply(lambda x: f"{x['path']}-{x['cur_hub']}_{x['cur_port']}", axis=1)
 
-if __name__ == "__main__":
-    import argparse
+        # Add the sojourn times to get the updated timestamps
+        block['timestamp'] = etimes
 
-    #### training config ####################
+        # Filter all the entries where cur_port == -1, as this indicates that the packet has arrived at its final destination
+        next_t = block['timestamp'].iloc[-1]
+        block = block.loc[block['cur_port'] != -1]
 
-    identifier = "default"
-    save_base_dir = f"saved/{identifier}"
+        # Now convert to forwarding dict
+        forwarding_dict = {d: block.loc[block['cur_hub'] == d] for d in pd.unique(block['cur_hub'])}
 
-    model_dir = "{}/saved_model".format(save_base_dir)
-    saved_model_name = "best_model.pt"
-    if not os.path.isdir(model_dir):
-        os.makedirs(model_dir)
+        # Update the egress times for the current dataframe
+        
+        self.df.loc[(self.df['timestamp'] <= next_t) & (self.df['timestamp'] > self.timestamp), 'etime'] = etimes
+        # Note: We don't update the status, since it may be the case that we have to let other devices 'catch up' their timestamps.
+        return next_t, forwarding_dict
 
+    def update_time(self, new_time):
+        self.timestamp = new_time
+        self.num_updates += 1
 
-    writer = SummaryWriter()
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-    # create update lr function
-
-
-
-    arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument(
-        "--train_config", "-c",
-        required=True,
-        help="This directory should include experiment specifications in 'specs.json,' and logging will be done in this directory as well.",
-    )
-    args = arg_parser.parse_args()
-    
-    specs = json.load(open(os.path.join(args.train_config)))
-    data_specs = specs["data_specs"]
-    model_specs = specs["model_specs"]
-    n_timesteps = specs["n_timesteps"]
-
-    mp.set_start_method('spawn')
-    train_ds = TracesDataset([data_specs["train_data_pth"]],
-                             n_timesteps=n_timesteps)
-    valid_ds = TracesDataset([data_specs["val_data_pth"]],
-                             n_timesteps=n_timesteps)
-    train_dl = DataLoader(train_ds,
-                          batch_size=specs['batch_size'],
-                          shuffle = True,
-                          num_workers = 0, 
-                          # pin_memory = True,
-                          # sampler = SubsetRandomSampler(sample(dataset_indices, batch_size * batch_num_per_epoch))
-                          )
-    valid_dl = DataLoader(valid_ds,
-                          batch_size=specs['batch_size'],
-                          shuffle=False)
-
-    model = deepPTM(in_feat=train_ds.num_feat,
-                    lstm_config=model_specs["lstm_config"],
-                    attn_config=model_specs["attn_config"],
-                    time_steps=n_timesteps
-                    )
-    train_epochs(model, lr=specs["train_lr"],
-                 train_dl=train_dl, valid_dl=valid_dl, epochs=specs["n_epochs"], start_label=0)
-
-                    
-    
-    # mp.set_sharing_strategy('file_system')
-    # train()
-    # print("FINISHED ...")
-
+    def add_new_packets(self, new_packets):
+        self.df = pd.concat([self.df, new_packets]).sort_values(['timestamp'])
