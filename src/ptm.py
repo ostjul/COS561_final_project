@@ -15,12 +15,16 @@ import torch.nn as nn
 
 class deepPTM(nn.Module):
     def __init__(self, in_feat: int,
+                 use_norm_time: bool=False,
                  lstm_config= {"width":[200,100], "keep_prob": 1, 'bidirectional': True, 'dropout': 0.},
                  attn_config={"dim": 64, "num_heads": 3, "out_dim": 32, 'dropout': 0.},
                  time_steps:int=42, *args, **kwargs) -> None:
         """
         """
         super().__init__(*args, **kwargs)
+        if use_norm_time:
+            self.use_norm_time = use_norm_time
+
         # Save configs
         self.lstm_bidirectional = lstm_config["bidirectional"]
         self.attn_embbed_dim = attn_config["dim"]
@@ -101,6 +105,9 @@ class deepPTM(nn.Module):
         # TODO: Check dimensionalit and in and output codes
         x = packet_batch
 
+        if self.use_norm_time:
+            x[..., 0] = x[..., 0] - x[..., 0, 0][..., None]
+
         if self.lstm_bidirectional:
             x = self._run_multi_layer_bi_directional(x, self.in_lstm_fw, self.in_lstm_bw)
         else:
@@ -134,3 +141,8 @@ class deepPTM(nn.Module):
         t_pred = self.dec_layer(lstm_out).squeeze()
 
         return t_pred
+    
+
+def load_model_from_ckpt(model, ckpt_pth):
+    checkpoint = torch.load(ckpt_pth)
+    return model.load_state_dict(checkpoint)
