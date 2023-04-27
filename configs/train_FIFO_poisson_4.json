@@ -1,7 +1,7 @@
 {
     "desc" : "train deepnet ",
   
-    "train_lr" : 1e-2,
+    "train_lr" : 1e-3,
     "batch_size": 256,
     "n_epochs" : 5000,
     "n_timesteps" : 42,

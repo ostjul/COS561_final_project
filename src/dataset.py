@@ -18,8 +18,13 @@ class TracesDataset(Dataset):
                  csv_paths: list,
                  n_timesteps: int,
                  y_label: str= 'delay',
-                 x_labels: list= x_labels_mid.copy()
+                 x_labels: list= x_labels_mid.copy(),
+                 use_norm_time=False
                  ):
+        
+        if use_norm_time:
+            if 'timestamp' not in x_labels:
+                x_labels.insert(0, 'timestamp')
         
         self.n_timesteps = n_timesteps
         self.indices = [] # Tuples of (csv_idx, device_idx, row_idx)
@@ -41,6 +46,8 @@ class TracesDataset(Dataset):
         # Iterate through all CSVs
         for csv_idx, csv_path in enumerate(csv_paths):
             df = pd.read_csv(csv_path)
+
+            df = df[df['cur_hub'].isin([12,13,14,15,16,17,18,19])]
 
             if 'pkt len (byte)' in df.columns:
                 df = df.rename({'pkt len (byte)': 'pkt_len'}, axis='columns')

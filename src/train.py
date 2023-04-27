@@ -13,15 +13,15 @@ from datetime import datetime
 
 import copy
 
-from ptm import deepPTM 
+from ptm import deepPTM, load_model_from_ckpt
 from dataset import TracesDataset 
 
 pytorch_seed = 0
 torch.manual_seed(pytorch_seed)
 
 
-def save_model(model, out_file):
-    torch.save(model.state_dict(), model_dir + "/" + out_file)
+def save_model(model, saved_model_pth):
+    torch.save(model.state_dict(), saved_model_pth)
 
 
 def train_epochs(model, lr, train_dl, valid_dl, epochs=10, start_label=0):
@@ -65,9 +65,10 @@ def train_epochs(model, lr, train_dl, valid_dl, epochs=10, start_label=0):
                 batch_num = batch_num+1
                 tepoch.set_postfix(avg_loss=sum_of_loss/batch_num)
     
-        writer.add_scalar("Loss/train", sum_of_loss/epoch_batch_num, i+ start_label)
-        valid_avg_loss = valid(model, eval_loss_func, valid_dl, eval_epoch_losses)
-        writer.add_scalar("Loss/valid", valid_avg_loss, i + start_label + 1)
+        if i < 10 or i % 5:
+            writer.add_scalar("Loss/train", sum_of_loss/epoch_batch_num, i+ start_label)
+            valid_avg_loss = valid(model, eval_loss_func, valid_dl, eval_epoch_losses)
+            writer.add_scalar("Loss/valid", valid_avg_loss, i + start_label + 1)
 
 def valid(model, eval_loss_func, validation_loader, eval_epoch_losses):
     model.eval()
@@ -86,7 +87,7 @@ def valid(model, eval_loss_func, validation_loader, eval_epoch_losses):
 
         ### save the model for the epoch with best eval loss
         if epoch_avg_loss == min(eval_epoch_losses):
-            save_model(model, saved_model_name)
+            save_model(model, saved_model_pth)
     return epoch_avg_loss
 
 if __name__ == "__main__":
@@ -116,6 +117,8 @@ if __name__ == "__main__":
     if not os.path.isdir(model_dir):
         os.makedirs(model_dir)
 
+    saved_model_pth = os.path.join(model_dir, saved_model_name)
+
 
     current_time = datetime.now().strftime('%b%d_%H-%M-%S')
     summary_dir = "runs_ts"
@@ -134,9 +137,11 @@ if __name__ == "__main__":
 
     mp.set_start_method('spawn')
     train_ds = TracesDataset(train_data,
-                             n_timesteps=n_timesteps)
+                             n_timesteps=n_timesteps,
+                             use_norm_time=specs['use_norm_time'])
     valid_ds = TracesDataset(val_data,
-                             n_timesteps=n_timesteps)
+                             n_timesteps=n_timesteps,
+                             use_norm_time=specs['use_norm_time'])
     train_dl = DataLoader(train_ds,
                           batch_size=specs['batch_size'],
                           shuffle = True,
@@ -151,8 +156,13 @@ if __name__ == "__main__":
     model = deepPTM(in_feat=train_ds.num_feat,
                     lstm_config=model_specs["lstm_config"],
                     attn_config=model_specs["attn_config"],
-                    time_steps=n_timesteps
+                    time_steps=n_timesteps,
+                    use_norm_time=specs['use_norm_time']
                     )
+    if 'trained_model_pth' in specs:
+        saved_model_pth = specs['trained_model_pth']
+        load_model_from_ckpt(model, specs['trained_model_pth'])
+    
     train_epochs(model, lr=lr,
                  train_dl=train_dl, valid_dl=valid_dl, epochs=specs["n_epochs"], start_label=0)
 
