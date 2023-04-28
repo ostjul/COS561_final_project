@@ -1,0 +1,37 @@
+{
+    "desc" : "train deepnet ",
+  
+    "train_lr" : 1e-3,
+    "batch_size": 256,
+    "n_epochs" : 5000,
+    "n_timesteps" : 42,
+    "save_pth": "/scratch/gpfs/jo5483/data/deepQueue/models",
+    "exp_name": "sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4",
+    "save_csv_path": "testingfile.csv",
+    "use_norm_time": 1,
+
+  
+    "data_specs": {
+      "train_data_pth": ["/scratch/gpfs/jo5483/data/deepQueue/processed_data/itr1/sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4_processed.csv",
+      "/scratch/gpfs/jo5483/data/deepQueue/processed_data/itr2/sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4_processed.csv",
+      "/scratch/gpfs/jo5483/data/deepQueue/processed_data/itr3/sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4_processed.csv",
+      "/scratch/gpfs/jo5483/data/deepQueue/processed_data/itr4/sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4_processed.csv" ],
+      "val_data_pth": ["data/processed_data/test_processed.csv"]
+    },
+
+    "model_specs": {
+        "lstm_config":{
+            "width":[200,100],
+            "keep_prob": 1,
+            "bidirectional": true,
+            "dropout": 0
+        },
+
+        "attn_config":{
+            "dim": 64,
+            "num_heads": 3,
+            "out_dim": 32,
+            "dropout": 0
+        }
+    }
+}
