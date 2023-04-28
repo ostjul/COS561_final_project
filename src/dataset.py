@@ -11,6 +11,8 @@ x_labels_fid = ['pkt_len', 'cur_port', 'priority', 'flow_id', 'FIFO', 'DRR', 'SP
 x_labels_small = ['pkt_len', 'cur_port', 'priority', 'load']
 x_labels_mid = ['pkt_len', 'cur_port', 'priority', 'FIFO', 'DRR', 'SP', 'WFQ', 'load']
 
+# non-links
+useful_hubs = [12,13,14,15,16,17,18,19]
 
 
 class TracesDataset(Dataset):
@@ -107,13 +109,14 @@ class HistogramTracesDataset(Dataset):
                  csv_paths: list,
                  n_timesteps: int,
                  y_label: str= 'delay',
-                 x_labels: list= x_labels_mid.copy(),
-                 use_norm_time=False
+                 x_labels: list= x_labels_mid.copy()
+                #  use_norm_time=False
                  ):
         
-        if use_norm_time:
-            if 'timestamp' not in x_labels:
-                x_labels.insert(0, 'timestamp')
+        # if use_norm_time:
+        #     if 'timestamp' not in x_labels:
+        #         x_labels.insert(0, 'timestamp')
+        x_labels.insert(0, 'timestamp') # we always want to include timestamps
         
         self.n_timesteps = n_timesteps
         self.indices = [] # Tuples of (csv_idx, device_idx, row_idx)
@@ -131,12 +134,14 @@ class HistogramTracesDataset(Dataset):
                 x_labels.append(new_port_load)
 
         self.x_labels = x_labels
-
+        
+        
         # Iterate through all CSVs
         for csv_idx, csv_path in enumerate(csv_paths):
             df = pd.read_csv(csv_path)
 
-            df = df[df['cur_hub'].isin([12,13,14,15,16,17,18,19])]
+            
+            df = df[df['cur_hub'].isin(useful_hubs)]
 
             if 'pkt len (byte)' in df.columns:
                 df = df.rename({'pkt len (byte)': 'pkt_len'}, axis='columns')
@@ -191,8 +196,15 @@ class HistogramTracesDataset(Dataset):
         xs = self.xs[csv_idx][device_idx][row_start_idx:row_start_idx + self.n_timesteps]
         ys = self.ys[csv_idx][device_idx][row_start_idx:row_start_idx + self.n_timesteps]
 
+        # device_idx are coded using indices of useful_hubs
+        # map back to the original hub values using values as each useful_hubs index
+        # index_map = {i:x for i,x in enumerate(useful_hubs)} 
+        hub = useful_hubs[device_idx] 
+
+        
+
         # Return data and labels
-        return xs, ys
+        return xs, ys, hub
     
     def __len__(self):
         return len(self.indices)
