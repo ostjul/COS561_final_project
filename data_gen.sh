@@ -1,12 +1,12 @@
 #!/bin/bash
 
 N_ITR=5
-echo "Creating ${MODE} csvs..."
-echo "Default config..."
+
 
 for i in $(seq $N_ITR)
 do
     echo "itr ${i}/${N_ITR}"
+    echo "Default config..."
     python src/data_gen.py --output-dir data/itr${i} --output-name sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4
 
     echo "varying scheduler..."
