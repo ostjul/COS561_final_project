@@ -1,5 +1,8 @@
 from functools import partial
 from random import expovariate, sample
+import random
+from scipy import stats
+
 
 import os
 import argparse
@@ -24,6 +27,8 @@ from ns.utils.generators.MAP_MSP_generator import BMAP_generator
 
 from data_gen_utils import flow_to_df, merge_flow_dfs
 
+
+
 parser = argparse.ArgumentParser(description='Data Generation Script for DeepQueueNet using ns.py')
 parser.add_argument('--port-rate', type=int, default=1024 * 1024 * 50, 
                     help='Port Rate in bits per second (default: 50 Mbps)')
@@ -47,16 +52,34 @@ parser.add_argument('--output-name', type=str, default='rsim',
                     help='Name of the output csv file (default: rsim)')
 args = parser.parse_args()
 
+# For packet size distributions
+a = 50
+scale = 250
+primary_skew = stats.skewnorm(a, 2 * args.mean_pkt_size, scale)
+secondary_skew = stats.skewnorm(a, args.mean_pkt_size, scale)
+
 def interarrival(y):
     try:
         return next(y)
     except StopIteration:
         return
-    
+
 def packet_size():
-    # TODO: Add options for a wider range of packet size distributions
-    return int(np.random.poisson(args.mean_pkt_size))
-    # return int(args.mean_pkt_size)
+    p = random.random()
+    
+    if p < 0.67125: #0.47125: # 67.125%
+        return int(primary_skew.rvs(1))
+    elif p < 0.92504:  # 25.28%
+        return int(secondary_skew.rvs(1))
+    elif p < 0.95905:  # 3.5%
+        return 66
+    elif p < 0.96875:  # 0.97%
+        return 111
+    elif p < 0.97485:  # 0.61%
+        return 670
+    else:  # remaining 2.515%
+        return int(random.uniform(0, args.mean_pkt_size))
+
 
 def generate_synthetic_traffic_dataset(G, all_flows):
 
