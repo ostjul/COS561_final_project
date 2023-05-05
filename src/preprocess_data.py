@@ -20,6 +20,7 @@ def numpy_ewma_vectorized(data, alpha):
     out = offset + cumsums*scale_arr[::-1]
     return out
 
+
 def preprocess_csvs(csv_paths: list,
                     verbose: bool,
                     csv_save_dir: str=None,
@@ -72,36 +73,15 @@ def preprocess_csvs(csv_paths: list,
                 if verbose:
                     print("\tdevice {} port {} has {} rows".format(device, port, len_data))
                 
-                # BEGIN NEW CODE
                 ingress_times = cur_device_port_df['timestamp'].values
                 egress_times = cur_device_port_df['etime'].values
-                # (N, N)
                 loads = ((ingress_times[:,np.newaxis] < egress_times) & (ingress_times[:,np.newaxis] > ingress_times))
                 # Get the number of bytes that were in the queue when each packet ingressed.
                 if 'pkt len (byte)' in cur_device_port_df.columns:
-
                     load_bytes = loads @ cur_device_port_df['pkt len (byte)'].values
                 else:
                     load_bytes = loads @ cur_device_port_df['pkt_len'].values
-                # END NEW CODE   
-
-                # BEGIN OLD CODE 
-                # Calculate the load at the current port for each row
-                # loads = []
-                # for row_idx, row in cur_device_port_df.iterrows():
-                #     ingress_time = row['timestamp']
-                #     egress_time = row ['etime']
-                #     # load = count number of rows that have timestamp or etime between [ingress, egress]
-                #     load_rows = cur_device_port_df[
-                #         # other row start in the middle of current row
-                #         ((cur_device_port_df['timestamp'] >= ingress_time) & (cur_device_port_df['timestamp'] < egress_time)) | 
-                #         # other row ends in middle of current row
-                #         ((cur_device_port_df['etime'] >= ingress_time) & (cur_device_port_df['etime'] < egress_time)) | 
-                #         # other row starts before current row and ends after current row
-                #         ((cur_device_port_df['timestamp'] < ingress_time) & (cur_device_port_df['etime'] > egress_time))]
-                #     # Count number of rows that match the criteria
-                #     load = len(load_rows)
-                #     loads.append(load)
+                
                 # Assign load column and append to list of dataframe 
                 cur_device_port_df['load'] = load_bytes
                 # calculate an EWMA of the loads to give the more context information to the packet.
@@ -110,7 +90,6 @@ def preprocess_csvs(csv_paths: list,
                 cur_device_port_df['mean_load_port_{}'.format(port)] = mean_load_device_port
                 
                 # Add sub-df to list of dfs
-                # processed_dfs.append(cur_device_port_df)
                 device_dfs.append(cur_device_port_df)
             device_dfs = pd.concat(device_dfs)
             
@@ -120,8 +99,6 @@ def preprocess_csvs(csv_paths: list,
             # Fill NaNs with 0's
             device_dfs = device_dfs.fillna(0)
             processed_dfs.append(device_dfs)
-                
-                
                 
             if verbose:
                 print("")

@@ -1,70 +1,141 @@
 import numpy as np
+from opt_einsum import contract # Makes things run much faster
 import pandas as pd
+import torch
 
 import ray
 
+from preprocess_data import numpy_ewma_vectorized, AVAILABLE_SCHEDULERS
+from dataset import x_labels_mid
 
-block_size = 42 # TODO: Get this from the spec file
+# TODO: This should really be adjustable to variable number of ports.
+x_labels = ['timestamp'] + x_labels_mid.copy() + [f'mean_load_port_{i}' for i in range(4)]
+# TODO: Get this from the config file
+block_size = 42
 
-def scrub(df):
-    # Zeros out all the etimes to ensure we don't have knowledge of egress times during inference.
-    df['etime'] = np.zeros(len(df))
-    return df
-
-@ray.remote
+# @ray.remote
 class Device:
  
-    def __init__(self, id, df):
+    def __init__(self, id, df, port_to_next_hop, flow_to_port):
 
         self.id = id
-        self.df = df
-        self.timestamp = 0.0
-        self.num_updates = 0
+        self.df: pd.DataFrame = df
+        self.port_to_next_hop = port_to_next_hop
+        self.flow_to_port = flow_to_port
+        self.forwarded_ids = set()
 
-    def forward_block(self, model, port_to_nexthop, flow_to_port):
-        # Get the next block of packets to forward from this device.
-        block = self.df[self.df['timestamp'] > self.timestamp].iloc[:block_size].copy() 
-        if len(block) == 0:
-            # No update can be done
-            return self.timestamp, {}
-
-        # TODO: Need to do our block preprocessing here.
-        # processed_block = ...
+    def initial_forward(self):
         
-        # TODO: Predict the egress times using the trained network.
-        predicted_delays = np.ones(len(block)) * 0.003 # model(processed_block)
+        # Get all the packets we haven't forwarded yet
+        block = self.df.loc[~self.df.index.isin(self.forwarded_ids)].copy()
+        if len(block) == 0:
+            return {}
+        
+        self.forwarded_ids.update(block.index.values)
+        
+        # Update the devices & ports in a vectorized way (about 20x faster than pd.apply())
+        new_hubs_one_hot = np.eye(self.port_to_next_hop.shape[0])[block['cur_port'].values.astype(np.int32)] @ self.port_to_next_hop
+        block['cur_hub'] = np.argmax(new_hubs_one_hot, axis=-1)
 
-        # Don't actually simulate links. (this will only work for fattree16, should add an is_link flag to the device class for more generic behavior)
-        etimes = (block['timestamp'] + predicted_delays) if self.id < 20 else block['etime']
-    
-        block['cur_hub'] = block.apply(lambda x: port_to_nexthop[self.id][x['cur_port']], axis=1)
-        block['cur_port'] = block.apply(lambda x: (flow_to_port[x['cur_hub']]).get(x['flow_id'], -1), axis=1)
-        block['path'] = block.apply(lambda x: f"{x['path']}-{x['cur_hub']}_{x['cur_port']}", axis=1)
+        one_hot_flows =  np.eye(self.flow_to_port.shape[1])[block['flow_id'].values.astype(np.int32)]
+        new_ports_one_hot = contract('nd,dfk,nf->nk', new_hubs_one_hot, self.flow_to_port, one_hot_flows)
+        new_ports = np.argmax(new_ports_one_hot, axis=-1)
+        block['cur_port'] = np.where(new_ports_one_hot.sum(axis=-1), new_ports, -np.ones_like(new_ports))
 
-        # Add the sojourn times to get the updated timestamps
-        block['timestamp'] = etimes
-
-        next_t = block['timestamp'].iloc[-1]
-        # Get rid of all packets at their final destination.
-        block = block.loc[(block['cur_port'] != -1)]
+        block = block.loc[block['cur_port'] != -1]
 
         # Now convert to forwarding dict
         forwarding_dict = {d: block.loc[block['cur_hub'] == d] for d in pd.unique(block['cur_hub'])}
+        return forwarding_dict
 
-        # Update the etimes for the packets in this device.
+    def forward(self, model):
+        # Get the next block of packets to forward from this device.
+        block = self.df.copy()
+
+        # Ensure that the block is divisible by the block size 
+        block = block.iloc[:-(len(block) % block_size)]
+        assert len(block) % block_size == 0
+
+        if len(block) == 0:
+            return {}
+
+        if self.id < 20:
+            # Block Preprocessing 
+            processed_dfs = []
+            # TODO: Vectorize this for loop, will probably be messy but this is where the performance bottleneck currently lies.
+            for port in range(4):
+                port_df = block.loc[block['cur_port'] == port].copy()
+                ingress_times = port_df['timestamp'].values
+                egress_times = port_df['etime'].values
+                loads = ((ingress_times[:,np.newaxis] < egress_times) & (ingress_times[:,np.newaxis] > ingress_times)).astype(np.int32)
+                load_bytes = loads @ port_df['pkt_len'].values.astype(np.int32)
+                port_df['load'] = load_bytes
+                mean_load_device_port = numpy_ewma_vectorized(load_bytes, 0.05)
+                port_df[f'mean_load_port_{port}'] = mean_load_device_port
+                processed_dfs.append(port_df)
+            processed_df = pd.concat(processed_dfs)
+            if 'scheduler' in processed_df:
+                one_hot_scheduler = pd.get_dummies(processed_df['scheduler'])
+                processed_df = pd.concat([processed_df, one_hot_scheduler], axis=1)
+            
+            # If each available scheduler is not present in the DF, set column to 0
+            zeros = np.zeros(len(processed_df))
+            for scheduler in AVAILABLE_SCHEDULERS:
+                if scheduler not in processed_df.columns:
+                    processed_df[scheduler] = zeros
+
+            processed_block = processed_df[x_labels].values.astype(np.float32).reshape((-1, block_size, len(x_labels)))
+
+            predicted_delays = model(torch.tensor(processed_block)).reshape(-1).detach().numpy()
+            block['timestamp'] = block['timestamp'] + predicted_delays
+        else:
+            # TODO: For links, we may eventually want to compute them using the formula instead of using sim results.
+            block['timestamp'] = block['etime']
+        
         tmp_df = self.df.copy()
-        tmp_df.loc[(tmp_df['timestamp'] <= next_t) & (tmp_df['timestamp'] > self.timestamp), 'etime'] = etimes
+        tmp_df['etime'] = block['timestamp']
         self.df = tmp_df
+
+        block.drop(columns=['etime'], inplace=True)
+
+        # Update the devices & ports in a vectorized way (about 20x faster than pd.apply())
+        new_hubs_one_hot = np.eye(self.port_to_next_hop.shape[0])[block['cur_port'].values.astype(np.int32)] @ self.port_to_next_hop
+        block['cur_hub'] = np.argmax(new_hubs_one_hot, axis=-1)
+
+        one_hot_flows =  np.eye(self.flow_to_port.shape[1])[block['flow_id'].values.astype(np.int32)]
+        new_ports_one_hot = contract('nd,dfk,nf->nk', new_hubs_one_hot, self.flow_to_port, one_hot_flows)
+        new_ports = np.argmax(new_ports_one_hot, axis=-1)
+        block['cur_port'] = np.where(new_ports_one_hot.sum(axis=-1), new_ports, -np.ones_like(new_ports))
+        # filter all the packets that have reached their final destination
+        block = block.loc[block['cur_port'] != -1]
+
+        # Now convert to forwarding dict
+        forwarding_dict = {d: block.loc[block['cur_hub'] == d] for d in pd.unique(block['cur_hub'])}
+        return forwarding_dict
     
-        # Note: We don't update the status, since it may be the case that we have to let other devices 'catch up' their timestamps.
-        return next_t, forwarding_dict
 
-    def update_time(self, new_time):
-        self.timestamp = new_time
-        self.num_updates += 1
-
-    def add_new_packets(self, new_packets):
-        self.df = pd.concat([self.df, *new_packets]).sort_values(['timestamp'])
+    def aggregate(self, forward_dicts, initial=False):
+        updates = []
+        for forward_dict in forward_dicts:
+            if self.id in forward_dict and len(forward_dict[self.id]) > 0:
+                updates.append(forward_dict[self.id])
+        if len(updates) > 0:
+            old_df = self.df.copy()
+            if initial:
+                cat_df = pd.concat([self.df, *updates])
+                self.df = cat_df[~cat_df.index.duplicated(keep='last')].sort_values('timestamp')
+            else:
+                self.df.update(pd.concat(updates))
+            # Return true only if the dataframe has changed
+            return not old_df.equals(self.df)
+        else:
+            return False
 
     def get_df(self):
         return self.df
+    
+    def get_timestamp(self):
+        return self.timestamp
+    
+    def get_next_timestamp(self):
+        return self.next_timestamp
