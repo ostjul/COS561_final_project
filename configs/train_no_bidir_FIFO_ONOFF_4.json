@@ -1,0 +1,37 @@
+{
+    "desc" : "train deepnet ",
+  
+    "train_lr" : 1e-4,
+    "batch_size": 256,
+    "n_epochs" : 5000,
+    "n_timesteps" : 42,
+    "save_pth": "/scratch/gpfs/jo5483/data/deepQueue/models",
+    "exp_name": "new_no_bidir_sch_FIFO-tgen_OnOff-n_flows_100-n_ports_4",
+    "use_norm_time": true,
+    "resume": "new_no_bidir_sch_FIFO-tgen_OnOff-n_flows_100-n_ports_4_lr_0.0001_steps_42_May02_23-58-31",
+    "start": 91,
+  
+    "data_specs": {
+      "train_data_pth": ["/scratch/gpfs/jo5483/data/deepQueue/new_0501/itr1/sch_FIFO-tgen_OnOff-n_flows_100-n_ports_4_processed.csv",
+      "/scratch/gpfs/jo5483/data/deepQueue/new_0501/itr2/sch_FIFO-tgen_OnOff-n_flows_100-n_ports_4_processed.csv",
+      "/scratch/gpfs/jo5483/data/deepQueue/new_0501/itr3/sch_FIFO-tgen_OnOff-n_flows_100-n_ports_4_processed.csv",
+      "/scratch/gpfs/jo5483/data/deepQueue/new_0501/itr4/sch_FIFO-tgen_OnOff-n_flows_100-n_ports_4_processed.csv" ],
+      "val_data_pth": ["/scratch/gpfs/jo5483/data/deepQueue/new_0501/itr5/sch_FIFO-tgen_OnOff-n_flows_100-n_ports_4_processed.csv"]
+    },
+
+    "model_specs": {
+        "lstm_config":{
+            "width":[200,100],
+            "keep_prob": 1,
+            "bidirectional": false,
+            "dropout": 0
+        },
+
+        "attn_config":{
+            "dim": 64,
+            "num_heads": 3,
+            "out_dim": 32,
+            "dropout": 0
+        }
+    }
+}

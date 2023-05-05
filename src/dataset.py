@@ -35,7 +35,7 @@ class TracesDataset(Dataset):
 
         # Add load of all ports to x_labels
         first_df =  pd.read_csv(csv_paths[0])
-        max_port_number = first_df.cur_port.max()
+        max_port_number = np.int(first_df.cur_port.max())
         for port_idx in range(max_port_number+1):
             new_port_load = 'mean_load_port_{}'.format(port_idx)
             if new_port_load not in x_labels:

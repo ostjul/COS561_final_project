@@ -6,14 +6,15 @@
     "n_epochs" : 5000,
     "n_timesteps" : 42,
     "save_pth": "/scratch/gpfs/jo5483/data/deepQueue/models",
-    "exp_name": "sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4",
+    "exp_name": "new_sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4",
+    "use_norm_time": true,
   
     "data_specs": {
-      "train_data_pth": ["/scratch/gpfs/jo5483/data/deepQueue/processed_data/itr1/sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4_processed.csv",
-      "/scratch/gpfs/jo5483/data/deepQueue/processed_data/itr2/sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4_processed.csv",
-      "/scratch/gpfs/jo5483/data/deepQueue/processed_data/itr3/sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4_processed.csv",
-      "/scratch/gpfs/jo5483/data/deepQueue/processed_data/itr4/sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4_processed.csv" ],
-      "val_data_pth": ["/scratch/gpfs/jo5483/data/deepQueue/processed_data/itr5/sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4_processed.csv"]
+      "train_data_pth": ["/scratch/gpfs/jo5483/data/deepQueue/new_0501/itr1/sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4_processed.csv",
+      "/scratch/gpfs/jo5483/data/deepQueue/new_0501/itr2/sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4_processed.csv",
+      "/scratch/gpfs/jo5483/data/deepQueue/new_0501/itr3/sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4_processed.csv",
+      "/scratch/gpfs/jo5483/data/deepQueue/new_0501/itr4/sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4_processed.csv" ],
+      "val_data_pth": ["/scratch/gpfs/jo5483/data/deepQueue/new_0501/itr5/sch_FIFO-tgen_Poisson-n_flows_100-n_ports_4_processed.csv"]
     },
 
     "model_specs": {
