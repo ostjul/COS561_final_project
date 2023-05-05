@@ -2,16 +2,37 @@ import numpy as np
 from opt_einsum import contract # Makes things run much faster
 import pandas as pd
 import torch
+import cloudpickle
+import json
+import datetime as dt
 
 import ray
 
+import networkx as nx
+
 from preprocess_data import numpy_ewma_vectorized, AVAILABLE_SCHEDULERS
 from dataset import x_labels_mid
+from ptm import deepPTM, load_model_from_ckpt
+
+
 
 # TODO: This should really be adjustable to variable number of ports.
 x_labels = ['timestamp'] + x_labels_mid.copy() + [f'mean_load_port_{i}' for i in range(4)]
 # TODO: Get this from the config file
 block_size = 42
+
+
+def to_matrix(dict_to_convert, shape):
+    matrix = np.zeros(shape, dtype=np.int32)
+    for key, value in dict_to_convert.items():
+        matrix[key, value] = 1
+    return matrix
+
+def to_tensor(dict_to_convert, shape):
+    tensor = np.zeros(shape, dtype=np.int32)
+    for key, sub_dict in dict_to_convert.items():
+        tensor[int(key)] = to_matrix(sub_dict, shape[1:])
+    return tensor
 
 # @ray.remote
 class Device:
@@ -51,9 +72,9 @@ class Device:
     def forward(self, model):
         # Get the next block of packets to forward from this device.
         block = self.df.copy()
-
         # Ensure that the block is divisible by the block size 
         block = block.iloc[:-(len(block) % block_size)]
+        block_idxes = block.index
         assert len(block) % block_size == 0
 
         if len(block) == 0:
@@ -83,19 +104,20 @@ class Device:
             for scheduler in AVAILABLE_SCHEDULERS:
                 if scheduler not in processed_df.columns:
                     processed_df[scheduler] = zeros
-
-            processed_block = processed_df[x_labels].values.astype(np.float32).reshape((-1, block_size, len(x_labels)))
-
-            predicted_delays = model(torch.tensor(processed_block)).reshape(-1).detach().numpy()
-            block['timestamp'] = block['timestamp'] + predicted_delays
+            
+            processed_block = processed_df[x_labels].fillna(0).values.astype(np.float32).reshape((-1, block_size, len(x_labels)))
+            # Make sure that the egress times are > 0. 1e-7 seems to be a good lower bound based on empirical observation.
+            predicted_delays = np.maximum(model(torch.tensor(processed_block)).reshape(-1).detach().numpy(), 1e-7)
+            etimes = block['timestamp'].values + predicted_delays
         else:
             # TODO: For links, we may eventually want to compute them using the formula instead of using sim results.
-            block['timestamp'] = block['etime']
+            etimes = block['etime'].values
         
-        tmp_df = self.df.copy()
-        tmp_df['etime'] = block['timestamp']
-        self.df = tmp_df
+        # tmp_df = self.df.copy()
+        # tmp_df.loc[block_idxes, 'etime'] = etimes
+        self.df.loc[block_idxes, 'etime'] = etimes
 
+        block['timestamp'] = etimes
         block.drop(columns=['etime'], inplace=True)
 
         # Update the devices & ports in a vectorized way (about 20x faster than pd.apply())
@@ -139,3 +161,78 @@ class Device:
     
     def get_next_timestamp(self):
         return self.next_timestamp
+    
+
+
+def run_simulation(G, trace_path, config_path, model_path):
+    """
+    Actually runs the inference loop for the simulation. Only fattree topology is currently supported.
+    """
+
+    # Load the config and the model
+    with open(config_path) as f:
+        specs = json.load(f)
+   
+    model_specs = specs["model_specs"]
+    model = deepPTM(in_feat=13, # TODO: Get this from config somehow
+                    lstm_config=model_specs["lstm_config"],
+                    attn_config=model_specs["attn_config"],
+                    time_steps=specs["n_timesteps"],
+                    use_norm_time=specs['use_norm_time'])
+    load_model_from_ckpt(model, model_path)
+    model.eval()
+
+    # Load the trace and the forwarding table
+    df = pd.read_csv(f'{trace_path}.csv')
+    with open(f'{trace_path}.flow_to_port', 'rb') as f:
+        flow_to_port = cloudpickle.load(f)
+    with open(f'{trace_path}.port_to_nexthop', 'rb') as f:
+        port_to_nexthop = cloudpickle.load(f)
+
+    all_devices = pd.unique(df['cur_hub'])
+    num_ports = len(pd.unique(df['cur_port']))
+    num_flows = len(pd.unique(df['flow_id']))
+
+    port_to_nexthop_tensor = to_tensor(port_to_nexthop, (len(all_devices), num_ports, len(all_devices)))
+    flow_to_port_tensor = to_tensor(flow_to_port, (len(all_devices), num_flows, num_ports))
+
+    initial_packets = df.loc[df['cur_hub'] >= 20].copy()
+    initial_devices = pd.unique(initial_packets['cur_hub'])
+    # Give all the packets a pid
+    initial_packets['pid'] = np.arange(len(initial_packets))
+    initial_packets.set_index('pid', inplace=True)
+
+    devices = [None] * len(all_devices)
+    for d in all_devices:
+        if d in initial_devices:
+            device_initial_pkts = initial_packets.loc[initial_packets['cur_hub'] == d]
+            devices[d] = Device(d, device_initial_pkts, port_to_nexthop_tensor[d], flow_to_port_tensor)
+        else:
+            devices[d] = Device(d, pd.DataFrame(columns=df.columns), port_to_nexthop_tensor[d], flow_to_port_tensor)
+
+    print("Simulation Setup, running IRSA")
+    start_time = dt.datetime.now()
+    # IRSA pt. 1, forwarding all the initial packets
+    diam_G = nx.diameter(G)
+    for _ in range(diam_G):
+        # Forward in parallel, and aggregate in parallel.
+        forward_dicts = [dev.initial_forward() for dev in devices]
+        res = [dev.aggregate(forward_dicts, initial=True) for dev in devices]
+        # print(any(res))
+        if not any(res):
+            break
+
+    # IRSA pt. 2
+    for _ in range(diam_G):
+        forward_dicts = [dev.forward(model) for dev in devices]
+        res = [dev.aggregate(forward_dicts) for dev in devices]
+        # Break if no updates were made.
+        if not any(res):
+            break
+
+    print(f"Simulation took {(dt.datetime.now() - start_time).total_seconds()} seconds")
+    # Now we can get the final dataframe simply by extracting the dataframes, concatentating, and re-sorting on timestamp.
+    final_df = pd.concat([dev.get_df() for dev in devices]).sort_values('timestamp')
+    return final_df
+
+    
