@@ -24,7 +24,7 @@ def save_model(model, saved_model_pth):
     torch.save(model.state_dict(), saved_model_pth)
 
 
-def train_epochs(model, lr, train_dl, valid_dl, epochs=10, start_label=0):
+def train_epochs(model, lr, train_dl, valid_dl, epochs=10, start_epoch=0, start_label=0):
     train_epoch_losses = []
     eval_epoch_losses = []
     total_batch_num = 0
@@ -40,10 +40,11 @@ def train_epochs(model, lr, train_dl, valid_dl, epochs=10, start_label=0):
     loss_func = torch.nn.MSELoss(reduction="mean")
     eval_loss_func = copy.deepcopy(loss_func)
 
-    valid_avg_loss = valid(model, eval_loss_func, valid_dl, eval_epoch_losses)
-    writer.add_scalar("Loss/valid", valid_avg_loss, start_label)
+    if not start_epoch:
+        valid_avg_loss = valid(model, eval_loss_func, valid_dl, eval_epoch_losses)
+        writer.add_scalar("Loss/valid", valid_avg_loss, start_label)
 
-    for i in range(epochs):
+    for i in range(start_epoch, epochs):
         with tqdm(train_dl, unit="batch") as tepoch:
             model.train()
             batch_num = 0
@@ -65,8 +66,9 @@ def train_epochs(model, lr, train_dl, valid_dl, epochs=10, start_label=0):
                 batch_num = batch_num+1
                 tepoch.set_postfix(avg_loss=sum_of_loss/batch_num)
     
-        if i < 10 or i % 5:
-            writer.add_scalar("Loss/train", sum_of_loss/epoch_batch_num, i+ start_label)
+        
+        writer.add_scalar("Loss/train", sum_of_loss/epoch_batch_num, i+ start_label)
+        if i < 5 or not i % 5:
             valid_avg_loss = valid(model, eval_loss_func, valid_dl, eval_epoch_losses)
             writer.add_scalar("Loss/valid", valid_avg_loss, i + start_label + 1)
 
@@ -118,12 +120,18 @@ if __name__ == "__main__":
         os.makedirs(model_dir)
 
     saved_model_pth = os.path.join(model_dir, saved_model_name)
-
-
-    current_time = datetime.now().strftime('%b%d_%H-%M-%S')
     summary_dir = "runs_ts"
-    writer = SummaryWriter(os.path.join(summary_dir, specs["exp_name"] + "_lr_{}_steps_{}_".format(specs["train_lr"],specs["n_timesteps"]) + current_time))
+
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if not specs.get('resume', False):
+        current_time = datetime.now().strftime('%b%d_%H-%M-%S')
+        exp_name_dt = specs["exp_name"] + "_lr_{}_steps_{}_".format(specs["train_lr"],specs["n_timesteps"]) + current_time
+        start_epoch = 0
+    else:
+        start_epoch=specs.get('start', 0)
+        exp_name_dt = specs.get('resume')
+
+    writer = SummaryWriter(os.path.join(summary_dir, exp_name_dt))
 
     # create update lr function
     data_specs = specs["data_specs"]
@@ -159,12 +167,12 @@ if __name__ == "__main__":
                     time_steps=n_timesteps,
                     use_norm_time=specs['use_norm_time']
                     )
-    if 'trained_model_pth' in specs:
-        saved_model_pth = specs['trained_model_pth']
-        load_model_from_ckpt(model, specs['trained_model_pth'])
+    if 'resume' in specs:
+        load_model_from_ckpt(model, saved_model_pth)
     
     train_epochs(model, lr=lr,
-                 train_dl=train_dl, valid_dl=valid_dl, epochs=specs["n_epochs"], start_label=0)
+                 train_dl=train_dl, valid_dl=valid_dl, epochs=specs["n_epochs"],
+                 start_epoch=specs.get('start', 0), start_label=0)
 
                     
     

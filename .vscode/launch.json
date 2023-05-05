@@ -16,7 +16,7 @@
             "justMyCode": true
         },
         {
-            "name": "Fattree16_poisson_simple",
+            "name": "Fattree16_poisson",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/src/train.py",
@@ -27,7 +27,7 @@
             "justMyCode": true
         },
         {
-            "name": "no_bidir_Fattree16_poisson_simple",
+            "name": "no_bidir_Fattree16_poisson",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/src/train.py",
@@ -49,6 +49,17 @@
             "justMyCode": true
         },
         {
+            "name": "no_bidir_ALL_poisson_4_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_no_bidir_ALL_poisson_4.json"
+            ],
+            "justMyCode": true
+        },
+        {
             "name": "no_bidir_FIFO_poisson_4_config",
             "type": "python",
             "request": "launch",
@@ -56,6 +67,72 @@
             "console": "integratedTerminal",
             "args": [
                 "-c","./configs/train_no_bidir_FIFO_poisson_4.json"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "no_bidir_DDR_poisson_4_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_no_bidir_DDR_poisson_4.json"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "no_bidir_SP_poisson_4_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_no_bidir_SP_poisson_4.json"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "no_bidir_WFQ_poisson_4_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_no_bidir_WFQ_poisson_4.json"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "no_bidir_FIFO_OnOff_4_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_no_bidir_FIFO_ONOFF_4.json"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "no_bidir_FIFO_poisson_8_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_no_bidir_FIFO_poisson_8.json"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "no_bidir_FIFO_poisson_16_config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-c","./configs/train_no_bidir_FIFO_poisson_16.json"
             ],
             "justMyCode": true
         },
