@@ -233,6 +233,6 @@ def run_simulation(G, trace_path, config_path, model_path):
     print(f"Simulation took {(dt.datetime.now() - start_time).total_seconds()} seconds")
     # Now we can get the final dataframe simply by extracting the dataframes, concatentating, and re-sorting on timestamp.
     final_df = pd.concat([dev.get_df() for dev in devices]).sort_values('timestamp')
-    return final_df
+    return df, final_df
 
     

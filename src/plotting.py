@@ -5,7 +5,35 @@ from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
 
 
-def plot_egress_histogram(df, devices, dt=1, hist_window_seconds=2):
+def plot_egress_histogram(dfs, labels, colors, styles, path=None):
+    # Here we plot the animation of the egress histogram.
+    fig, axes = plt.subplots(2)
+    fig.set_size_inches(4, 12)
+    axes[0].set_xlabel('Delay (s)')
+    axes[1].set_xlabel('Jitter (s)')
+    axes[0].set_ylabel('PDF')
+    axes[1].set_ylabel('PDF')
+
+    # Manual binning
+    delay_bins = onp.linspace(0.0, 0.0008, 50)
+    jitter_bins = onp.linspace(0.0, 0.0006, 50)
+
+    for df, label, color, style in zip(dfs, labels, colors, styles):
+        df_ = df.dropna()
+        delays = (df_['etime'] - df_['timestamp']).values
+        jitter = onp.abs(delays - delays.mean())
+        axes[0].hist(delays, bins=delay_bins, label=label, color=color, alpha=0.8, histtype=u'step', density=True, linewidth=1, linestyle=style)
+        axes[1].hist(jitter, bins=jitter_bins, label=label, color=color, alpha=0.8, histtype=u'step', density=True, linewidth=1, linestyle=style)
+    axes[0].legend()
+    axes[1].legend()
+    if path is None:
+        plt.show()
+    else:
+        plt.savefig(path)
+
+
+
+def plot_egress_histogram_animation(df, devices, dt=1, hist_window_seconds=2):
     """
     Returns an animation of the per device histograms of egress times.
     df - DataFrame of packet traces 
